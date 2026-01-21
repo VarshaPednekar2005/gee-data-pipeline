@@ -70,6 +70,14 @@ The web interface allows you to configure:
 - **Export Format**: GeoTIFF or CSV
 - **Bands**: Specific bands to download
 
+## Screenshots
+
+### Main Interface
+![Main Interface](images/main.png)
+
+### Output Received
+![Output Received](images/outputreceived.png)
+
 ## Output
 
 Data downloads directly to your browser's download folder in the selected format.
