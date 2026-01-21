@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data files
+*.tif
+*.tiff
+*.nc
+*.hdf
+*.h5
+GEE_Downloads/
+
+# Credentials & Secrets
+*.json
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+credentials/
+.credentials/
+secrets/
+.secrets/
+auth/
+.auth/
+keys/
+.keys/
+
+# Environment & Config
+.env*
+config.ini
+settings.ini
+*.conf
+*.cfg
+
+# API Keys & Tokens
+*api*key*
+*secret*
+*token*
+*password*
+.earthengine-token
+
+# OS
+.DS_Store
+Thumbs.db

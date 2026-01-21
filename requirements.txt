@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+earthengine-api
+google-auth
+google-cloud-storage
+requests
+python-dotenv
