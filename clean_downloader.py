@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
+import json
 import ee
 from typing import Dict, Optional, List, Tuple
 
@@ -294,35 +295,68 @@ handler = UniversalGEEHandler()
 # ==================== FASTAPI SETUP ====================
 
 def init_gee():
+    """Initialize Google Earth Engine - try OAuth first (free), then service account"""
     try:
-        key_file = 'plucky-sight-423703-k5-5965759cb7dc.json'
-        service_account_email = 'gee-service-account@plucky-sight-423703-k5.iam.gserviceaccount.com'
-        credentials = ee.ServiceAccountCredentials(service_account_email, key_file)
-        ee.Initialize(credentials)
-        return True
-    except:
+        # Try OAuth first (gives Drive access, completely free)
+        try:
+            ee.Initialize(project='plucky-sight-423703-k5')
+            print("✅ GEE initialized with OAuth (FREE Google Drive access available)")
+            return True
+        except:
+            print("⚠️  OAuth not set up, using service account (no Drive access)")
+            # Fallback to service account
+            key_file = 'plucky-sight-423703-k5-5965759cb7dc.json'
+            service_account_email = 'gee-service-account@plucky-sight-423703-k5.iam.gserviceaccount.com'
+            credentials = ee.ServiceAccountCredentials(service_account_email, key_file)
+            ee.Initialize(credentials)
+            print("✅ GEE initialized with service account (no Drive access)")
+            return True
+    except Exception as e:
+        print(f"❌ GEE initialization failed: {e}")
         return False
 
-def get_region_geometry(region_type, region_name):
+def get_region_geometry(region_type, region_data):
+    """
+    Enhanced region handler supporting multiple input types
+    
+    Args:
+        region_type: 'country', 'state', 'continent', 'geojson', 'coordinates', 'draw'
+        region_data: Either region name (str) or geometry dict for custom regions
+    """
     try:
         if region_type == "country":
-            return ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017").filter(ee.Filter.eq('country_na', region_name)).geometry()
+            return ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017").filter(
+                ee.Filter.eq('country_na', region_data)
+            ).geometry()
+            
         elif region_type == "state":
-            return ee.FeatureCollection("FAO/GAUL/2015/level1").filter(ee.Filter.eq('ADM1_NAME', region_name)).geometry()
+            return ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
+                ee.Filter.eq('ADM1_NAME', region_data)
+            ).geometry()
+            
         elif region_type == "continent":
             continent_countries = {
                 "Asia": ["China", "India", "Indonesia", "Pakistan", "Bangladesh", "Japan", "Philippines", "Vietnam", "Turkey", "Iran"],
-                "Europe": ["Russia", "Germany", "United Kingdom", "France", "Italy", "Spain", "Ukraine", "Poland", "Romania", "Netherlands"],
-                "Africa": ["Nigeria", "Ethiopia", "Egypt", "South Africa", "Kenya", "Uganda", "Algeria", "Sudan", "Morocco", "Angola"],
-                "North America": ["United States", "Mexico", "Canada", "Guatemala", "Cuba", "Haiti", "Dominican Republic", "Honduras", "Nicaragua", "Costa Rica"],
-                "South America": ["Brazil", "Colombia", "Argentina", "Peru", "Venezuela", "Chile", "Ecuador", "Bolivia", "Paraguay", "Uruguay"],
-                "Oceania": ["Australia", "Papua New Guinea", "New Zealand", "Fiji", "Solomon Islands", "Vanuatu", "Samoa", "Kiribati", "Tonga", "Palau"]
+                # ... other continents ...
             }
-            if region_name in continent_countries:
+            if region_data in continent_countries:
                 return ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017").filter(
-                    ee.Filter.inList('country_na', continent_countries[region_name])
+                    ee.Filter.inList('country_na', continent_countries[region_data])
                 ).geometry()
+                
+        elif region_type in ["geojson", "coordinates", "draw"]:
+            # Handle custom GeoJSON geometry
+            if isinstance(region_data, dict):
+                # region_data is a GeoJSON geometry object
+                return ee.Geometry(region_data)
+            else:
+                # Try to parse as JSON string
+                import json
+                geometry_dict = json.loads(region_data)
+                return ee.Geometry(geometry_dict)
+        
         return None
+        
     except Exception as e:
         print(f"Region error: {e}")
         return None
@@ -335,6 +369,10 @@ def home():
     <head>
         <title>Earth Engine Data Pipeline</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
@@ -582,6 +620,48 @@ def home():
                     border-bottom: 1px solid #e5e5e5;
                 }
             }
+            .modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+                align-items: center;
+                justify-content: center;
+            }
+            .modal.active {
+                display: flex;
+            }
+            .modal-content {
+                background: white;
+                padding: 2rem;
+                border-radius: 8px;
+                max-width: 500px;
+                width: 90%;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            }
+            .progress-bar {
+                width: 100%;
+                height: 24px;
+                background: #e5e5e5;
+                border-radius: 12px;
+                overflow: hidden;
+                margin: 1rem 0;
+            }
+            .progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #10b981, #059669);
+                transition: width 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 0.75rem;
+                font-weight: 600;
+            }
         </style>
     </head>
     <body>
@@ -611,20 +691,18 @@ def home():
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="regionType">Region Type</label>
-                        <select id="regionType" onchange="updateRegionOptions()">
-                            <option value="">Select Type</option>
-                            <option value="country">Country</option>
-                            <option value="state">State/Province</option>
-                            <option value="continent">Continent</option>
+                        <label for="regionType">Region Selection Method</label>
+                        <select id="regionType" onchange="updateRegionMethod()">
+                            <option value="">Select Method</option>
+                            <option value="country">Predefined - Country</option>
+                            <option value="state">Predefined - State/Province</option>
+                            <option value="continent">Predefined - Continent</option>
+                            <option value="geojson">Upload GeoJSON</option>
+                            <option value="coordinates">Enter Coordinates</option>
+                            <option value="draw">Draw on Map</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="regionName">Region Name</label>
-                        <select id="regionName" disabled>
-                            <option value="">Select Region</option>
-                        </select>
-                    </div>
+                    <div id="regionInputContainer"></div>
                 </div>
                 
                 <div class="form-group">
@@ -632,7 +710,6 @@ def home():
                     <select id="exportFormat">
                         <option value="GeoTIFF">GeoTIFF (Raster)</option>
                         <option value="CSV">CSV (100 samples)</option>
-                        <option value="JSON">JSON (Metadata)</option>
                     </select>
                 </div>
                 
@@ -656,6 +733,49 @@ def home():
             </div>
         </div>
         
+        <div id="progressModal" class="modal">
+            <div class="modal-content">
+                <h3 style="margin-bottom: 1rem;">Exporting to Google Drive</h3>
+                <div id="progressInfo" style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
+                    Initializing export...
+                </div>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill" style="width: 0%">0%</div>
+                </div>
+                <div id="progressStatus" style="color: #999; font-size: 0.85rem; text-align: center;">
+                    Status: READY
+                </div>
+                <button id="closeProgressBtn" class="btn-secondary" style="margin-top: 1rem; display: none;" onclick="closeProgressModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+
+        <div id="folderModal" class="modal">
+            <div class="modal-content">
+                <h3 style="margin-bottom: 1rem;">📁 Choose Drive Folder</h3>
+                <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
+                    This file is large and will be exported to Google Drive. Enter a folder name:
+                </p>
+                <div class="form-group">
+                    <label for="folderNameInput">Folder Name in Google Drive</label>
+                    <input type="text" id="folderNameInput" value="EarthEngineExports" 
+                        placeholder="e.g., MyDatasets, SatelliteImages">
+                    <small style="color: #666; font-size: 0.8rem; margin-top: 0.5rem; display: block;">
+                        If folder doesn't exist, it will be created automatically
+                    </small>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                    <button class="btn-primary" onclick="startDriveExport()" style="flex: 1;">
+                        Start Export
+                    </button>
+                    <button class="btn-secondary" onclick="closeFolderModal()" style="flex: 1;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <script>
             const regions = {
                 country: ["United States", "China", "India", "Brazil", "Russia", "Canada", "Australia", "Germany", "United Kingdom", "France", "Italy", "Spain", "Mexico", "Japan", "South Africa", "Nigeria", "Egypt", "Turkey", "Iran", "Pakistan"],
@@ -663,6 +783,140 @@ def home():
                 continent: ["Asia", "Europe", "Africa", "North America", "South America", "Oceania"]
             };
             
+            function updateRegionMethod() {
+                const method = document.getElementById('regionType').value;
+                const container = document.getElementById('regionInputContainer');
+                
+                if (method === 'country' || method === 'state' || method === 'continent') {
+                    // Existing dropdown selection
+                    container.innerHTML = `
+                        <div class="form-group">
+                            <label for="regionName">Region Name</label>
+                            <select id="regionName">
+                                <option value="">Select Region</option>
+                            </select>
+                        </div>
+                    `;
+                    updateRegionOptions();
+                }
+                else if (method === 'geojson') {
+                    container.innerHTML = `
+                        <div class="form-group">
+                            <label for="geoJsonFile">Upload GeoJSON File</label>
+                            <input type="file" id="geoJsonFile" accept=".json,.geojson" 
+                                onchange="handleGeoJSONUpload(event)">
+                            <small style="color: #666; font-size: 0.8rem;">
+                                Upload a GeoJSON file with your area of interest
+                            </small>
+                            <div id="geoJsonPreview" style="margin-top: 0.5rem;"></div>
+                        </div>
+                    `;
+                }
+                else if (method === 'coordinates') {
+                    container.innerHTML = `
+                        <div class="form-group">
+                            <label>Bounding Box Coordinates</label>
+                            <div class="form-row">
+                                <input type="number" id="minLon" placeholder="Min Longitude" step="0.0001">
+                                <input type="number" id="minLat" placeholder="Min Latitude" step="0.0001">
+                            </div>
+                            <div class="form-row">
+                                <input type="number" id="maxLon" placeholder="Max Longitude" step="0.0001">
+                                <input type="number" id="maxLat" placeholder="Max Latitude" step="0.0001">
+                            </div>
+                            <small style="color: #666; font-size: 0.8rem;">
+                                Example: San Francisco Bay: minLon=-122.5, minLat=37.3, maxLon=-122.0, maxLat=37.9
+                            </small>
+                        </div>
+                    `;
+                }
+                else if (method === 'draw') {
+                    container.innerHTML = `
+                        <div class="form-group">
+                            <label>Draw Custom Region</label>
+                            <div id="mapContainer" style="width: 100%; height: 400px; border: 1px solid #d1d5db; border-radius: 6px; margin-top: 0.5rem;"></div>
+                            <button class="btn-secondary" onclick="initDrawMap()" style="margin-top: 0.5rem;">
+                                Initialize Map
+                            </button>
+                            <div id="drawInstructions" style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;"></div>
+                        </div>
+                    `;
+                }
+            }
+            // Store custom geometry globally
+            window.customGeometry = null;
+
+            // Handle GeoJSON file upload
+            function handleGeoJSONUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const geoJson = JSON.parse(e.target.result);
+                        
+                        // Extract geometry from different GeoJSON structures
+                        let geometry;
+                        if (geoJson.type === 'FeatureCollection') {
+                            // Get geometry from first feature
+                            geometry = geoJson.features[0].geometry;
+                        } else if (geoJson.type === 'Feature') {
+                            // Get geometry from feature
+                            geometry = geoJson.geometry;
+                        } else if (geoJson.type === 'Polygon' || geoJson.type === 'MultiPolygon' || 
+                                geoJson.type === 'Point' || geoJson.type === 'LineString') {
+                            // Already a geometry object
+                            geometry = geoJson;
+                        } else {
+                            throw new Error('Unsupported GeoJSON type');
+                        }
+                        
+                        window.customGeometry = geometry;
+                        
+                        // Show preview
+                        document.getElementById('geoJsonPreview').innerHTML = `
+                            <div style="background: #f0f9ff; padding: 0.75rem; border-radius: 4px; border-left: 3px solid #0ea5e9;">
+                                <strong>✓ GeoJSON Loaded</strong><br>
+                                <small>Type: ${geometry.type}</small>
+                            </div>
+                        `;
+                    } catch (error) {
+                        document.getElementById('geoJsonPreview').innerHTML = `
+                            <div style="background: #fef2f2; padding: 0.75rem; border-radius: 4px; border-left: 3px solid #ef4444;">
+                                <strong>✗ Invalid GeoJSON</strong><br>
+                                <small>${error.message}</small>
+                            </div>
+                        `;
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            // Handle coordinate input
+            function getCoordinateGeometry() {
+                const minLon = parseFloat(document.getElementById('minLon').value);
+                const minLat = parseFloat(document.getElementById('minLat').value);
+                const maxLon = parseFloat(document.getElementById('maxLon').value);
+                const maxLat = parseFloat(document.getElementById('maxLat').value);
+                
+                if (isNaN(minLon) || isNaN(minLat) || isNaN(maxLon) || isNaN(maxLat)) {
+                    return null;
+                }
+                
+                // Create GeoJSON rectangle
+                return {
+                    "type": "Polygon",
+                    "coordinates": [[
+                        [minLon, minLat],
+                        [maxLon, minLat],
+                        [maxLon, maxLat],
+                        [minLon, maxLat],
+                        [minLon, minLat]
+                    ]]
+                };
+            }
+
             function updateRegionOptions() {
                 const regionType = document.getElementById('regionType').value;
                 const regionSelect = document.getElementById('regionName');
@@ -689,14 +943,48 @@ def home():
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
                 const regionType = document.getElementById('regionType').value;
-                const regionName = document.getElementById('regionName').value;
-                
-                if (!dataset || !regionType || !regionName) {
-                    document.getElementById('result').innerHTML = `
-                        <div class="result error">Please complete all required fields</div>
-                    `;
-                    return;
+
+                let requestData = {
+                    dataset,
+                    start_date: startDate,
+                    end_date: endDate,
+                    region_type: regionType,
+                    region_name: regionType
+                };
+                            
+                // Add region-specific data
+                if (regionType === 'country' || regionType === 'state' || regionType === 'continent') {
+                    const regionName = document.getElementById('regionName').value;
+                    if (!regionName) {
+                        document.getElementById('result').innerHTML = `
+                            <div class="result error">Please select a region</div>
+                        `;
+                        return;
+                    }
+                    requestData.region_name = regionName;
                 }
+                else if (regionType === 'geojson' || regionType === 'draw') {
+                    if (!window.customGeometry) {
+                        document.getElementById('result').innerHTML = `
+                            <div class="result error">Please upload/draw a region first</div>
+                        `;
+                        return;
+                    }
+                    requestData.region_name = 'Custom Region';
+                    requestData.custom_geometry = window.customGeometry;
+                }
+                else if (regionType === 'coordinates') {
+                    const geometry = getCoordinateGeometry();
+                    if (!geometry) {
+                        document.getElementById('result').innerHTML = `
+                            <div class="result error">Please enter valid coordinates</div>
+                        `;
+                        return;
+                    }
+                    requestData.region_name = 'Custom Region';
+                    requestData.custom_geometry = geometry;
+                }
+                
                 
                 showLoading('Analyzing dataset...');
                 
@@ -704,10 +992,7 @@ def home():
                     const response = await fetch('/preview', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            dataset, start_date: startDate, end_date: endDate,
-                            region_type: regionType, region_name: regionName
-                        })
+                        body: JSON.stringify(requestData)
                     });
                     
                     const result = await response.json();
@@ -790,10 +1075,17 @@ def home():
                                 <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: #666;">Will be combined using ${result.composite_method} method</p>
                             </div>` : '';
                         
-                        // Disable download button if file is too large
-                        const downloadButton = result.size_warning && result.size_warning.type === 'size_limit' 
-                            ? `<button class="btn-secondary" disabled style="opacity: 0.6; cursor: not-allowed;">Download Unavailable (File Too Large)</button>`
-                            : `<button class="btn-primary" onclick="confirmDownload()">Download Dataset</button>`;
+                            // Size-based download options
+                            const downloadButton = result.estimated_mb > 10 
+                                ? `<button class="btn-primary" onclick="confirmDownload()">
+                                    Export to Google Drive (${result.estimated_size}) - FREE
+                                </button>
+                                <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem; text-align: center;">
+                                    Large files exported to your Google Drive (no size limits)
+                                </p>`
+                                : `<button class="btn-primary" onclick="confirmDownload()">
+                                    Download to Computer (${result.estimated_size})
+                                </button>`;
                         
                         document.getElementById('previewContent').innerHTML = `
                             <div class="preview-content">
@@ -816,7 +1108,7 @@ def home():
                                     </div>
                                     <div class="info-item">
                                         <strong>Region</strong>
-                                        <span>${regionName}</span>
+                                        <span>${requestData.region_name}</span>
                                     </div>
                                     <div class="info-item">
                                         <strong>Images Found</strong>
@@ -919,56 +1211,431 @@ def home():
                 `;
             }
             
+            // Global variable to store pending download request
+            let pendingDownloadRequest = null;
+
+            function showFolderModal() {
+                document.getElementById('folderModal').classList.add('active');
+            }
+
+            function closeFolderModal() {
+                document.getElementById('folderModal').classList.remove('active');
+                pendingDownloadRequest = null;
+            }
+
+            function closeProgressModal() {
+                document.getElementById('progressModal').classList.remove('active');
+            }
+
             async function confirmDownload() {
                 const dataset = document.getElementById('dataset').value;
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
                 const regionType = document.getElementById('regionType').value;
-                const regionName = document.getElementById('regionName').value;
                 const exportFormat = document.getElementById('exportFormat').value;
                 
+                let requestData = {
+                    dataset,
+                    start_date: startDate,
+                    end_date: endDate,
+                    region_type: regionType,
+                    export_format: exportFormat
+                };
+                
+                // Add region data
+                if (regionType === 'country' || regionType === 'state' || regionType === 'continent') {
+                    const regionName = document.getElementById('regionName').value;
+                    if (!regionName) {
+                        document.getElementById('result').innerHTML = `
+                            <div class="result error">Please select a region</div>
+                        `;
+                        return;
+                    }
+                    requestData.region_name = regionName;
+                }
+                else if (regionType === 'geojson' || regionType === 'draw') {
+                    if (!window.customGeometry) {
+                        document.getElementById('result').innerHTML = `
+                            <div class="result error">Please upload/draw a region first</div>
+                        `;
+                        return;
+                    }
+                    requestData.region_name = 'Custom Region';
+                    requestData.custom_geometry = window.customGeometry;
+                }
+                else if (regionType === 'coordinates') {
+                    const geometry = getCoordinateGeometry();
+                    if (!geometry) {
+                        document.getElementById('result').innerHTML = `
+                            <div class="result error">Please enter valid coordinates</div>
+                        `;
+                        return;
+                    }
+                    requestData.region_name = 'Custom Region';
+                    requestData.custom_geometry = geometry;
+                }
+                
+                // Send request directly
                 showLoading('Processing download...');
                 
                 try {
+                    console.log('Sending download request:', requestData);
                     const response = await fetch('/download', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            dataset, start_date: startDate, end_date: endDate,
-                            region_type: regionType, region_name: regionName, 
-                            export_format: exportFormat
-                        })
+                        body: JSON.stringify(requestData)
                     });
                     
                     const result = await response.json();
                     
                     if (result.success) {
-                        const filename = result.filename || 'gee_download';
-                        const extension = result.format === 'CSV' ? '.csv' : '.tif';
-                        document.getElementById('previewContent').innerHTML = `
-                            <div class="preview-content">
-                                <div class="result">
-                                    <h3>Download Ready</h3>
-                                    <p>Your ${result.format} file is ready for download.</p>
-                                    <a href="${result.download_url}" download="${filename}${extension}" 
-                                       style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; 
-                                              background: #1a1a1a; color: white; text-decoration: none; 
-                                              border-radius: 6px; font-weight: 500;">
-                                        Download ${result.format}
-                                    </a>
+                        if (result.export_method === 'cloud_storage') {
+                            // Show cloud storage export progress
+                            document.getElementById('previewContent').innerHTML = `
+                                <div class="preview-content">
+                                    <div class="result">
+                                        <h3>🚀 Export Started</h3>
+                                        <p>Large file (${result.estimated_size}) is being processed in Google Cloud Storage.</p>
+                                        <p><strong>Export ID:</strong> ${result.export_id}</p>
+                                        <p><strong>Estimated time:</strong> 5-30 minutes</p>
+                                        <div style="margin-top: 1rem;">
+                                            <button onclick="checkCloudStorageStatus('${result.task_id}', '${result.download_url}', '${result.filename}')" 
+                                                    class="btn-primary">Check Status</button>
+                                        </div>
+                                        <p style="font-size: 0.85rem; color: #666; margin-top: 1rem;">
+                                            The file will be available for download once processing is complete.
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
+                        } else if (result.export_method === 'drive') {
+                            // Show progress modal for Drive export
+                            showProgressModal(result);
+                        } else {
+                            // Direct download
+                            const filename = result.filename || 'gee_download';
+                            document.getElementById('previewContent').innerHTML = `
+                                <div class="preview-content">
+                                    <div class="result">
+                                        <h3>✅ Download Ready</h3>
+                                        <p>Your ${result.format} file is ready for download.</p>
+                                        <a href="${result.download_url}" download="${filename}" 
+                                        style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; 
+                                                background: #1a1a1a; color: white; text-decoration: none; 
+                                                border-radius: 4px;">Download File</a>
+                                    </div>
+                                </div>
+                            `;
+                        }
                     } else {
-                        document.getElementById('previewContent').innerHTML = `
+                        document.getElementById('result').innerHTML = `
                             <div class="result error">Download Error: ${result.error}</div>
                         `;
                     }
                 } catch (error) {
-                    document.getElementById('previewContent').innerHTML = `
+                    document.getElementById('result').innerHTML = `
                         <div class="result error">Network Error: ${error.message}</div>
                     `;
                 }
+                
+                hideLoading();
+            }
+
+            async function checkCloudStorageStatus(taskId, downloadUrl, filename) {
+                try {
+                    const response = await fetch('/check_task_status', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({task_id: taskId})
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        if (result.status === 'COMPLETED') {
+                            document.getElementById('previewContent').innerHTML = `
+                                <div class="preview-content">
+                                    <div class="result">
+                                        <h3>✅ Export Complete</h3>
+                                        <p>Your file is ready for download!</p>
+                                        <div style="margin-top: 1rem;">
+                                            <a href="${downloadUrl}" download="${filename}" 
+                                               style="display: inline-block; padding: 0.75rem 1.5rem; 
+                                                      background: #1a1a1a; color: white; text-decoration: none; 
+                                                      border-radius: 4px;">Download File</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (result.status === 'FAILED') {
+                            document.getElementById('previewContent').innerHTML = `
+                                <div class="preview-content">
+                                    <div class="result error">
+                                        <h3>❌ Export Failed</h3>
+                                        <p>The export failed. Please try again with a smaller area.</p>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Still running
+                            document.getElementById('previewContent').innerHTML = `
+                                <div class="preview-content">
+                                    <div class="result">
+                                        <h3>⏳ Processing...</h3>
+                                        <p>Status: ${result.status}</p>
+                                        <p>Export is still running. Please wait...</p>
+                                        <div style="margin-top: 1rem;">
+                                            <button onclick="checkCloudStorageStatus('${taskId}', '${downloadUrl}', '${filename}')" 
+                                                    class="btn-primary">Check Again</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        alert('Error checking status: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('Network error: ' + error.message);
+                }
+            }
+
+            async function startDriveExport() {
+                console.log('startDriveExport called, pendingDownloadRequest:', pendingDownloadRequest);
+                
+                if (!pendingDownloadRequest) {
+                    console.error('No pending download request - rebuilding from form');
+                    // Rebuild request from form data
+                    const dataset = document.getElementById('dataset').value;
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    const regionType = document.getElementById('regionType').value;
+                    const exportFormat = document.getElementById('exportFormat').value;
+                    
+                    pendingDownloadRequest = {
+                        dataset,
+                        start_date: startDate,
+                        end_date: endDate,
+                        region_type: regionType,
+                        export_format: exportFormat
+                    };
+                    
+                    // Add region data
+                    if (regionType === 'country' || regionType === 'state' || regionType === 'continent') {
+                        const regionName = document.getElementById('regionName').value;
+                        if (!regionName) {
+                            document.getElementById('result').innerHTML = `
+                                <div class="result error">Please select a region</div>
+                            `;
+                            return;
+                        }
+                        pendingDownloadRequest.region_name = regionName;
+                    }
+                }
+                
+                // Get folder name if modal is open
+                const folderModal = document.getElementById('folderModal');
+                if (folderModal.classList.contains('active')) {
+                    const folderName = document.getElementById('folderNameInput').value.trim();
+                    if (!folderName) {
+                        alert('Please enter a folder name');
+                        return;
+                    }
+                    pendingDownloadRequest.drive_folder = folderName;
+                    closeFolderModal();
+                }
+                
+                showLoading('Processing download...');
+                
+                try {
+                    console.log('Sending request with data:', pendingDownloadRequest);
+                    const response = await fetch('/download', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(pendingDownloadRequest)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        if (result.export_method === 'drive') {
+                            // Show progress modal
+                            showProgressModal(result);
+                        } else {
+                            // Direct download
+                            const filename = result.filename || 'gee_download';
+                            document.getElementById('previewContent').innerHTML = `
+                                <div class="preview-content">
+                                    <div class="result">
+                                        <h3>✅ Download Ready</h3>
+                                        <p>Your ${result.format} file is ready for download.</p>
+                                        <a href="${result.download_url}" download="${filename}" 
+                                        style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; 
+                                                background: #1a1a1a; color: white; text-decoration: none; 
+                                                border-radius: 6px; font-weight: 500;">
+                                            📥 Download ${result.format}
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        // Enhanced error handling
+                        let errorHtml = `
+                            <div class="preview-content">
+                                <div class="result error">
+                                    <strong>Download Error:</strong><br>
+                                    ${result.error || 'Unknown error occurred'}
+                        `;
+                        
+                        // If it should retry with Drive, show option
+                        if (result.should_retry_with_drive) {
+                            errorHtml += `
+                                    <div style="margin-top: 1rem; padding: 1rem; background: #fff3cd; border-radius: 6px; border-left: 3px solid #ffc107;">
+                                        <strong>💡 Solution:</strong> This file requires Google Drive export.<br>
+                                        <button class="btn-primary" onclick="forceDriverExport()" style="margin-top: 0.75rem;">
+                                            Export to Google Drive Instead
+                                        </button>
+                                    </div>
+                            `;
+                        }
+                        
+                        errorHtml += `
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.getElementById('previewContent').innerHTML = errorHtml;
+                    }
+                } catch (error) {
+                    document.getElementById('previewContent').innerHTML = `
+                        <div class="preview-content">
+                            <div class="result error">
+                                <strong>Network Error:</strong><br>
+                                ${error.message}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // Add this new function to force Drive export
+            function forceDriverExport() {
+                // Force Drive export by showing folder modal
+                showFolderModal();
+            }
+
+            function showProgressModal(exportResult) {
+                // Hide preview panel, show modal
+                document.getElementById('progressModal').classList.add('active');
+                document.getElementById('progressInfo').innerHTML = `
+                    <strong>File:</strong> ${exportResult.filename}<br>
+                    <strong>Size:</strong> ${exportResult.estimated_size}<br>
+                    <strong>Folder:</strong> ${exportResult.folder}
+                `;
+                
+                // Start monitoring progress
+                monitorTaskProgress(exportResult.task_id);
+            }
+
+            async function monitorTaskProgress(taskId) {
+                const checkInterval = 3000; // Check every 3 seconds
+                let attempts = 0;
+                const maxAttempts = 600; // 30 minutes max
+                
+                const checkStatus = async () => {
+                    try {
+                        const response = await fetch('/check_task_status', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ task_id: taskId })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            const state = result.state;
+                            const progress = Math.round(result.progress * 100);
+                            
+                            // Update progress bar
+                            document.getElementById('progressFill').style.width = `${progress}%`;
+                            document.getElementById('progressFill').textContent = `${progress}%`;
+                            document.getElementById('progressStatus').textContent = `Status: ${state}`;
+                            
+                            if (state === 'COMPLETED') {
+                                // Success!
+                                document.getElementById('progressInfo').innerHTML = `
+                                    <div style="background: #d1fae5; padding: 1rem; border-radius: 6px; border-left: 3px solid #10b981;">
+                                        <strong>✅ Export Complete!</strong><br>
+                                        <small>Check your Google Drive for the file.</small>
+                                    </div>
+                                `;
+                                document.getElementById('progressFill').style.width = '100%';
+                                document.getElementById('progressFill').textContent = '100%';
+                                document.getElementById('closeProgressBtn').style.display = 'block';
+                                
+                                // Update preview panel
+                                document.getElementById('previewContent').innerHTML = `
+                                    <div class="preview-content">
+                                        <div class="result" style="background: #d1fae5; border-left-color: #10b981;">
+                                            <h3>✅ Export Complete!</h3>
+                                            <p>Your file has been successfully exported to Google Drive.</p>
+                                            <a href="https://drive.google.com" target="_blank" 
+                                            style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; 
+                                                    background: #1a1a1a; color: white; text-decoration: none; 
+                                                    border-radius: 6px; font-weight: 500;">
+                                                Open Google Drive
+                                            </a>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                            } else if (state === 'FAILED') {
+                                // Failed
+                                document.getElementById('progressInfo').innerHTML = `
+                                    <div style="background: #fef2f2; padding: 1rem; border-radius: 6px; border-left: 3px solid #ef4444;">
+                                        <strong>❌ Export Failed</strong><br>
+                                        <small>${result.error_message || 'Unknown error'}</small>
+                                    </div>
+                                `;
+                                document.getElementById('closeProgressBtn').style.display = 'block';
+                                
+                            } else if (state === 'CANCELLED') {
+                                document.getElementById('progressInfo').innerHTML = `
+                                    <div style="background: #fff3cd; padding: 1rem; border-radius: 6px; border-left: 3px solid #ffc107;">
+                                        <strong>⚠️ Export Cancelled</strong>
+                                    </div>
+                                `;
+                                document.getElementById('closeProgressBtn').style.display = 'block';
+                                
+                            } else {
+                                // Still running - check again
+                                attempts++;
+                                if (attempts < maxAttempts) {
+                                    setTimeout(checkStatus, checkInterval);
+                                } else {
+                                    document.getElementById('progressInfo').innerHTML = `
+                                        <div style="background: #fff3cd; padding: 1rem; border-radius: 6px;">
+                                            <strong>⏱️ Export taking longer than expected</strong><br>
+                                            <small>Check Google Drive manually or close this dialog.</small>
+                                        </div>
+                                    `;
+                                    document.getElementById('closeProgressBtn').style.display = 'block';
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Status check failed:', error);
+                        // Retry
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            setTimeout(checkStatus, checkInterval);
+                        }
+                    }
+                };
+                
+                // Start checking
+                checkStatus();
             }
             
             async function visualize() {
@@ -1036,6 +1703,77 @@ def home():
                     `;
                 }
             }
+
+            let drawMap = null;
+            let drawnItems = null;
+
+            function initDrawMap() {
+                if (drawMap) {
+                    drawMap.remove();
+                }
+                
+                // Initialize map
+                drawMap = L.map('mapContainer').setView([20, 0], 2);
+                
+                // Add base layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(drawMap);
+                
+                // Initialize draw controls
+                drawnItems = new L.FeatureGroup();
+                drawMap.addLayer(drawnItems);
+                
+                const drawControl = new L.Control.Draw({
+                    draw: {
+                        polygon: {
+                            allowIntersection: false,
+                            shapeOptions: {
+                                color: '#1a1a1a'
+                            }
+                        },
+                        rectangle: {
+                            shapeOptions: {
+                                color: '#1a1a1a'
+                            }
+                        },
+                        circle: false,
+                        circlemarker: false,
+                        marker: false,
+                        polyline: false
+                    },
+                    edit: {
+                        featureGroup: drawnItems,
+                        remove: true
+                    }
+                });
+                
+                drawMap.addControl(drawControl);
+                
+                // Handle drawn shapes
+                drawMap.on(L.Draw.Event.CREATED, function(event) {
+                    const layer = event.layer;
+                    drawnItems.clearLayers();  // Clear previous drawings
+                    drawnItems.addLayer(layer);
+                    
+                    // Convert to GeoJSON
+                    const geoJson = layer.toGeoJSON();
+                    window.customGeometry = geoJson.geometry;
+                    
+                    document.getElementById('drawInstructions').innerHTML = `
+                        <div style="background: #d1fae5; padding: 0.75rem; border-radius: 4px;">
+                            <strong>✓ Region drawn successfully</strong><br>
+                            <small>You can edit or delete the shape using the tools above</small>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('drawInstructions').innerHTML = `
+                    <div style="background: #dbeafe; padding: 0.75rem; border-radius: 4px;">
+                        Use the drawing tools in the top-left corner to draw a polygon or rectangle on the map
+                    </div>
+                `;
+            }
         </script>
     </body>
     </html>
@@ -1070,9 +1808,6 @@ def get_visualization_params(dataset_id: str, bands: List[str]) -> Dict:
     else:
         return {'bands': [bands[0]], 'min': 0, 'max': 1000, 'palette': ['blue', 'white', 'red']}
 
-def get_resolution_suggestions(dataset_id, native_scale):
-    """Removed - will implement later if needed"""
-    return None
 
 @app.post("/preview")
 async def preview_download(request: dict):
@@ -1081,14 +1816,23 @@ async def preview_download(request: dict):
     
     try:
         dataset_id = request['dataset']
-        
-        # Get smart configuration (auto-detected only)
         config = handler.get_config(dataset_id=dataset_id)
         
-        # Get region
-        region = get_region_geometry(request['region_type'], request['region_name'])
+        # Get region - handle both old and new formats
+        region_type = request['region_type']
+        
+        if region_type in ['geojson', 'coordinates', 'draw']:
+            # Custom geometry
+            region_data = request.get('custom_geometry')
+            if not region_data:
+                return {"success": False, "error": "Custom geometry required"}
+        else:
+            # Predefined region
+            region_data = request['region_name']
+        
+        region = get_region_geometry(region_type, region_data)
         if not region:
-            return {"success": False, "error": "Region not found"}
+            return {"success": False, "error": "Invalid region"}
         
         # Process dataset using universal handler
         image, count = handler.process_dataset(
@@ -1118,27 +1862,28 @@ async def preview_download(request: dict):
         # Size validation and warnings
         size_warning = None
         size_str = f"{estimated_mb:.1f} MB"
-        
+
         if estimated_mb > 1024:
             size_str = f"{estimated_mb/1024:.1f} GB"
             
-        if estimated_mb > 32:
+        # Changed thresholds to match GEE's actual limits
+        if estimated_mb > 10:  # Changed from 32
             size_warning = {
                 "type": "size_limit",
-                "message": f"File size ({size_str}) exceeds GEE's 32MB direct download limit",
+                "message": f"File size ({size_str}) requires Google Drive export",
                 "suggestions": [
-                    "Choose a smaller region",
-                    "Use coarser resolution (if available)",
-                    "Export to Google Drive (not implemented yet)"
+                    "File will be exported to Google Drive automatically",
+                    "Choose a folder name when prompted",
+                    "Check your Drive after 5-30 minutes"
                 ]
             }
-        elif estimated_mb > 16:
+        elif estimated_mb > 5:  # Warning for medium files
             size_warning = {
                 "type": "size_caution", 
-                "message": f"Large file size ({size_str}) - download may be slow",
-                "suggestions": ["Consider smaller region for faster download"]
+                "message": f"Medium file size ({size_str}) - direct download may be slow",
+                "suggestions": ["Download should complete in a few minutes"]
             }
-        
+
         # Generate sample visualization
         sample_image_url = None
         try:
@@ -1168,6 +1913,7 @@ async def preview_download(request: dict):
             "native_resolution": f"{config['scale']}m",
             "export_resolution": f"{config['scale']}m",  # Same as native since no user override
             "estimated_size": size_str,
+            "estimated_mb": estimated_mb,
             "size_warning": size_warning,
             "area_km2": f"{area_km2:.1f}",
             "composite_method": config['composite_method'],
@@ -1229,35 +1975,70 @@ async def visualize_data(request: dict):
         return {"success": False, "error": str(e)}
 
 @app.post("/download")
-async def download(request: dict):
-    if not init_gee():
-        return {"success": False, "error": "GEE initialization failed"}
-    
+async def download(request: Request):
     try:
-        dataset_id = request['dataset']
-        config = handler.get_config(dataset_id)
-        export_format = request.get('export_format', 'GeoTIFF')
+        # Get raw body first to debug
+        raw_body = await request.body()
+        print(f"Raw body: {raw_body}")
         
-        # Use auto-detected scale (no user override)
+        # Try to parse JSON
+        if raw_body and raw_body != b'null':
+            import json
+            body = json.loads(raw_body.decode('utf-8'))
+        else:
+            return {"success": False, "error": "No request data received - check frontend"}
+            
+        print(f"Parsed body: {body}")
+        
+        if not body or body is None:
+            return {"success": False, "error": "Request body is null"}
+        
+        if not init_gee():
+            return {"success": False, "error": "GEE initialization failed"}
+        
+        # Validate required fields
+        if 'dataset' not in body:
+            return {"success": False, "error": "Dataset is required"}
+        if 'region_type' not in body:
+            return {"success": False, "error": "Region type is required"}
+            
+        dataset_id = body['dataset']
+        config = handler.get_config(dataset_id)
+        export_format = body.get('export_format', 'GeoTIFF')
+        drive_folder = body.get('drive_folder', 'EarthEngineExports')  # Custom folder name
+        
         scale = config['scale']
         
         # Validate format compatibility
         if export_format == 'CSV' and config['type'] == 'ImageCollection':
             return {
                 "success": False, 
-                "error": "CSV format not suitable for ImageCollections with multiple images. Use GeoTIFF instead.",
-                "suggestion": "CSV works better for single images or point sampling. For weather/time-series data like this, use GeoTIFF format."
+                "error": "CSV format not suitable for ImageCollections with multiple images. Use GeoTIFF instead."
             }
         
-        region = get_region_geometry(request['region_type'], request['region_name'])
+        # Handle region based on type
+        region_type = body.get('region_type')
+        
+        if region_type in ['geojson', 'coordinates', 'draw']:
+            # Custom geometry from frontend
+            region_data = body.get('custom_geometry')
+            if not region_data:
+                return {"success": False, "error": "Custom geometry required"}
+        else:
+            # Predefined region
+            region_data = body.get('region_name')
+            if not region_data:
+                return {"success": False, "error": "Region name required"}
+        
+        region = get_region_geometry(region_type, region_data)
         if not region:
             return {"success": False, "error": "Region not found"}
         
         # Process dataset
         image, count = handler.process_dataset(
             dataset_id=dataset_id,
-            start_date=request.get('start_date'),
-            end_date=request.get('end_date'),
+            start_date=body.get('start_date'),
+            end_date=body.get('end_date'),
             region=region,
             config=config
         )
@@ -1265,15 +2046,95 @@ async def download(request: dict):
         if image is None:
             return {"success": False, "error": "No images found"}
         
-        # Create filename
-        dataset_clean = dataset_id.replace('/', '_').replace(' ', '_')
-        region_clean = request['region_name'].replace(' ', '_')
-        date_str = f"{request.get('start_date', 'nodate')}_{request.get('end_date', 'nodate')}"
-        filename = f"{dataset_clean}_{region_clean}_{date_str}"
+        # Create CLEANER filename
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        # Handle different export formats
-        if export_format == 'CSV':
-            # CSV: Sample points only (not suitable for full imagery)
+        # Extract simple dataset name
+        dataset_simple = dataset_id.split('/')[-1]  # Just take last part
+        region_simple = str(body.get('region_name', 'region')).replace(' ', '_').replace(',', '').replace('.', '')[:15]  # Clean and limit
+        
+        # Simple, clean filename format
+        filename = f"{dataset_simple}_{region_simple}_{timestamp}"
+        
+        # Calculate file size
+        area_km2 = region.area().divide(1000000).getInfo()
+        pixels_per_km2 = 1000000 / (scale * scale)
+        total_pixels = area_km2 * pixels_per_km2
+        estimated_mb = (total_pixels * len(config['bands']) * 4) / (1024 * 1024)
+        
+        # IMPORTANT: GEE has TWO limits:
+        # 1. Direct download: ~32MB file size limit via getDownloadURL()
+        # 2. Request payload: 50MB limit for the entire HTTP request
+        # Use Google Drive for large files (FREE with OAuth), direct download for small files
+        
+        if estimated_mb > 10 and export_format == 'GeoTIFF':
+            # LARGE FILE: Export to Google Drive (FREE, no size limits)
+            try:
+                # Ensure folder name is valid
+                if not drive_folder or drive_folder.strip() == '':
+                    drive_folder = 'EarthEngineExports'
+                
+                task = ee.batch.Export.image.toDrive(
+                    image=image,
+                    description=filename[:100],
+                    folder=drive_folder,
+                    fileNamePrefix=filename,
+                    scale=scale,
+                    region=region,
+                    maxPixels=1e13,  # Very high limit
+                    fileFormat='GeoTIFF'
+                )
+                task.start()
+                
+                return {
+                    "success": True,
+                    "export_method": "drive",
+                    "task_id": task.id,
+                    "filename": filename + '.tif',
+                    "folder": drive_folder,
+                    "message": f"Large file ({estimated_mb:.1f}MB) - Export started to your Google Drive folder '{drive_folder}'. Check your Drive in 5-30 minutes.",
+                    "estimated_size": f"{estimated_mb:.1f}MB"
+                }
+            except Exception as drive_error:
+                error_msg = str(drive_error)
+                if "Service accounts do not have storage quota" in error_msg:
+                    return {
+                        "success": False,
+                        "error": "OAuth authentication required for large files. Run 'python3 setup_free_oauth.py' to enable FREE Google Drive access.",
+                        "oauth_required": True,
+                        "estimated_size": f"{estimated_mb:.1f}MB"
+                    }
+                return {
+                    "success": False,
+                    "error": f"Drive export failed: {error_msg}",
+                    "estimated_size": f"{estimated_mb:.1f}MB"
+                }
+        
+        # SMALL FILE: Direct download
+        elif export_format == 'GeoTIFF':
+            try:
+                # Ensure region is properly formatted for download
+                region_geom = region.getInfo() if hasattr(region, 'getInfo') else region
+                
+                url = image.getDownloadURL({
+                    'scale': scale,
+                    'region': region_geom,
+                    'format': 'GEO_TIFF'
+                })
+                return {
+                    "success": True,
+                    "export_method": "direct",
+                    "download_url": url,
+                    "format": export_format,
+                    "filename": filename + '.tif',
+                    "estimated_size": f"{estimated_mb:.1f}MB"
+                }
+            except Exception as download_error:
+                error_msg = str(download_error)
+                return {"success": False, "error": f"Download failed: {error_msg}"}
+        
+        elif export_format == 'CSV':
             points = ee.FeatureCollection.randomPoints(region, 100)
             samples = image.sampleRegions(
                 collection=points,
@@ -1281,55 +2142,50 @@ async def download(request: dict):
                 geometries=True
             )
             url = samples.getDownloadURL('CSV')
-            file_ext = '.csv'
-            
-        elif export_format == 'JSON':
-            # JSON: Export metadata/statistics
-            stats = image.reduceRegion(
-                reducer=ee.Reducer.mean().combine(
-                    reducer2=ee.Reducer.minMax(),
-                    sharedInputs=True
-                ),
-                geometry=region,
-                scale=scale,
-                maxPixels=1e9
-            ).getInfo()
-            
             return {
                 "success": True,
-                "format": "JSON",
-                "data": stats,
-                "filename": filename
+                "export_method": "direct",
+                "download_url": url,
+                "format": "CSV",
+                "filename": filename + '.csv'
             }
             
-        else:  # GeoTIFF (default)
-            # Validate: Check if size is reasonable
-            area_km2 = region.area().divide(1000000).getInfo()
-            pixels_per_km2 = 1000000 / (scale * scale)
-            total_pixels = area_km2 * pixels_per_km2
-            
-            # GEE has a 32MB limit for direct download via getDownloadURL
-            estimated_mb = (total_pixels * len(config['bands']) * 4) / (1024 * 1024)
-            
-            if estimated_mb > 32:
-                return {
-                    "success": False,
-                    "error": f"File too large ({estimated_mb:.1f}MB) for direct download. GEE limit is 32MB. Try: (1) Smaller region, (2) Coarser resolution, or (3) Export to Google Drive instead."
-                }
-            
-            url = image.getDownloadURL({
-                'scale': scale,
-                'region': region,
-                'format': 'GEO_TIFF'
-            })
-            file_ext = '.tif'
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Download error: {error_details}")
+        return {"success": False, "error": f"Download failed: {str(e)}"}
+
+@app.post("/check_task_status")
+async def check_task_status(request: dict):
+    """Check the status of a GEE export task"""
+    if not init_gee():
+        return {"success": False, "error": "GEE initialization failed"}
+    
+    try:
+        task_id = request.get('task_id')
+        if not task_id:
+            return {"success": False, "error": "Task ID required"}
+        
+        # Get task status
+        tasks = ee.batch.Task.list()
+        task = None
+        for t in tasks:
+            if t.id == task_id:
+                task = t
+                break
+        
+        if not task:
+            return {"success": False, "error": "Task not found"}
+        
+        status = task.status()
         
         return {
             "success": True,
-            "download_url": url,
-            "format": export_format,
-            "filename": filename + file_ext
+            "state": status['state'],  # READY, RUNNING, COMPLETED, FAILED, CANCELLED
+            "progress": status.get('progress', 0),
+            "error_message": status.get('error_message', None)
         }
         
     except Exception as e:
-        return {"success": False, "error": f"Download failed: {str(e)}"}
+        return {"success": False, "error": str(e)}
