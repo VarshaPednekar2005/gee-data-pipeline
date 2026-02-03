@@ -3,8 +3,66 @@ from fastapi.responses import HTMLResponse
 import json
 import ee
 from typing import Dict, Optional, List, Tuple
+import tempfile
+import base64
+import rasterio
+import rasterio.mask
+import requests
+from shapely.geometry import shape
+import os
 
 app = FastAPI()
+
+def exact_clip_region(image, region, scale):
+    """Exact clipping preserving data values and GEE band metadata"""
+    region_geom = region.getInfo()
+    
+    # Get original GEE band information to preserve metadata
+    band_info = image.getInfo()['bands']
+    band_names = [band['id'] for band in band_info]
+    
+    with tempfile.NamedTemporaryFile(suffix='.tif', delete=False) as tmp_file:
+        tmp_path = tmp_file.name
+    
+    try:
+        # First get basic clipped image from GEE
+        clipped_image = image.clip(region)
+        url = clipped_image.getDownloadURL({
+            'scale': scale,
+            'region': region_geom,
+            'format': 'GEO_TIFF'
+        })
+        
+        response = requests.get(url)
+        with open(tmp_path, 'wb') as f:
+            f.write(response.content)
+        
+        # Apply exact clipping with rasterio
+        with rasterio.open(tmp_path) as src:
+            geom = shape(region_geom)
+            clipped_data, clipped_transform = rasterio.mask.mask(
+                src, [geom], crop=True, filled=True, nodata=src.nodata
+            )
+            
+            clipped_meta = src.meta.copy()
+            clipped_meta.update({
+                'height': clipped_data.shape[1],
+                'width': clipped_data.shape[2],
+                'transform': clipped_transform,
+                'nodata': src.nodata,
+                'compress': 'lzw',  # Add compression like GEE exports
+                'tiled': True       # Optimize for GIS software
+            })
+            
+            # Preserve original GEE band names in metadata
+            if len(band_names) == clipped_data.shape[0]:
+                clipped_meta['descriptions'] = band_names
+            
+            return clipped_data, clipped_meta
+            
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 # ==================== UNIVERSAL DATASET HANDLER ====================
 
@@ -1312,20 +1370,39 @@ def home():
                             // Show progress modal for Drive export
                             showProgressModal(result);
                         } else {
-                            // Direct download
+                            // Direct download - handle both URL and base64 data
                             const filename = result.filename || 'gee_download';
-                            document.getElementById('previewContent').innerHTML = `
-                                <div class="preview-content">
-                                    <div class="result">
-                                        <h3>✅ Download Ready</h3>
-                                        <p>Your ${result.format} file is ready for download.</p>
-                                        <a href="${result.download_url}" download="${filename}" 
-                                        style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; 
-                                                background: #1a1a1a; color: white; text-decoration: none; 
-                                                border-radius: 4px;">Download File</a>
+                            
+                            if (result.exact_clip && result.file_data) {
+                                // Handle base64 encoded exact clip
+                                document.getElementById('previewContent').innerHTML = `
+                                    <div class="preview-content">
+                                        <div class="result">
+                                            <h3>✅ Exact Clip Ready</h3>
+                                            <p>Your ${result.format} file with exact boundary clipping is ready.</p>
+                                            <p style="color: #059669; font-weight: 500;">✓ Exact region boundaries preserved</p>
+                                            <button onclick="downloadBase64File('${result.file_data}', '${filename}')" 
+                                            style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; 
+                                                    background: #1a1a1a; color: white; border: none; 
+                                                    border-radius: 4px; cursor: pointer;">📥 Download Exact Clip</button>
+                                        </div>
                                     </div>
-                                </div>
-                            `;
+                                `;
+                            } else {
+                                // Handle regular URL download
+                                document.getElementById('previewContent').innerHTML = `
+                                    <div class="preview-content">
+                                        <div class="result">
+                                            <h3>✅ Download Ready</h3>
+                                            <p>Your ${result.format} file is ready for download.</p>
+                                            <a href="${result.download_url}" download="${filename}" 
+                                            style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; 
+                                                    background: #1a1a1a; color: white; text-decoration: none; 
+                                                    border-radius: 4px;">📥 Download File</a>
+                                        </div>
+                                    </div>
+                                `;
+                            }
                         }
                     } else {
                         document.getElementById('result').innerHTML = `
@@ -1774,6 +1851,31 @@ def home():
                     </div>
                 `;
             }
+            
+            function downloadBase64File(base64Data, filename) {
+                try {
+                    const byteCharacters = atob(base64Data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], {type: 'image/tiff'});
+                    
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                } catch (error) {
+                    console.error('Download failed:', error);
+                    alert('Download failed. Please try again.');
+                }
+            }
         </script>
     </body>
     </html>
@@ -2069,20 +2171,23 @@ async def download(request: Request):
         # Use Google Drive for large files (FREE with OAuth), direct download for small files
         
         if estimated_mb > 10 and export_format == 'GeoTIFF':
-            # LARGE FILE: Export to Google Drive (FREE, no size limits)
+            # LARGE FILE: Exact clip using GEE processing (fast + exact)
             try:
-                # Ensure folder name is valid
                 if not drive_folder or drive_folder.strip() == '':
                     drive_folder = 'EarthEngineExports'
                 
+                # Apply exact clipping using GEE's clipToCollection for precision
+                region_collection = ee.FeatureCollection([ee.Feature(region)])
+                exact_clipped_image = image.clipToCollection(region_collection)
+                
                 task = ee.batch.Export.image.toDrive(
-                    image=image,
+                    image=exact_clipped_image,
                     description=filename[:100],
                     folder=drive_folder,
-                    fileNamePrefix=filename,
+                    fileNamePrefix=filename + '_exact',
                     scale=scale,
                     region=region,
-                    maxPixels=1e13,  # Very high limit
+                    maxPixels=1e13,
                     fileFormat='GeoTIFF'
                 )
                 task.start()
@@ -2091,17 +2196,19 @@ async def download(request: Request):
                     "success": True,
                     "export_method": "drive",
                     "task_id": task.id,
-                    "filename": filename + '.tif',
+                    "filename": filename + '_exact.tif',
                     "folder": drive_folder,
-                    "message": f"Large file ({estimated_mb:.1f}MB) - Export started to your Google Drive folder '{drive_folder}'. Check your Drive in 5-30 minutes.",
-                    "estimated_size": f"{estimated_mb:.1f}MB"
+                    "message": f"Large file ({estimated_mb:.1f}MB) - Exact clip export started to Google Drive '{drive_folder}'. Check in 5-30 minutes.",
+                    "estimated_size": f"{estimated_mb:.1f}MB",
+                    "exact_clip": True
                 }
+                
             except Exception as drive_error:
                 error_msg = str(drive_error)
                 if "Service accounts do not have storage quota" in error_msg:
                     return {
                         "success": False,
-                        "error": "OAuth authentication required for large files. Run 'python3 setup_free_oauth.py' to enable FREE Google Drive access.",
+                        "error": "OAuth authentication required for large files.",
                         "oauth_required": True,
                         "estimated_size": f"{estimated_mb:.1f}MB"
                     }
@@ -2111,28 +2218,46 @@ async def download(request: Request):
                     "estimated_size": f"{estimated_mb:.1f}MB"
                 }
         
-        # SMALL FILE: Direct download
+        # SMALL FILE: Direct download with exact clipping using rasterio
         elif export_format == 'GeoTIFF':
             try:
-                # Ensure region is properly formatted for download
-                region_geom = region.getInfo() if hasattr(region, 'getInfo') else region
+                # Apply exact clipping with rasterio for precise boundaries
+                clipped_data, clipped_meta = exact_clip_region(image, region, scale)
                 
-                url = image.getDownloadURL({
-                    'scale': scale,
-                    'region': region_geom,
-                    'format': 'GEO_TIFF'
-                })
+                # Save to temporary file and encode
+                with tempfile.NamedTemporaryFile(suffix='.tif', delete=False) as tmp_file:
+                    tmp_path = tmp_file.name
+                
+                with rasterio.open(tmp_path, 'w', **clipped_meta) as dst:
+                    dst.write(clipped_data)
+                    # Set band descriptions to preserve GEE band names
+                    if 'descriptions' in clipped_meta:
+                        for i, band_name in enumerate(clipped_meta['descriptions'], 1):
+                            dst.set_band_description(i, band_name)
+                
+                # Read and encode for download
+                with open(tmp_path, 'rb') as f:
+                    file_data = f.read()
+                
+                os.remove(tmp_path)
+                
+                # Return base64 encoded data for exact clip
+                encoded_data = base64.b64encode(file_data).decode('utf-8')
+                
                 return {
                     "success": True,
                     "export_method": "direct",
-                    "download_url": url,
+                    "exact_clip": True,
+                    "file_data": encoded_data,
                     "format": export_format,
-                    "filename": filename + '.tif',
-                    "estimated_size": f"{estimated_mb:.1f}MB"
+                    "filename": filename + '_exact.tif',
+                    "file_size_mb": len(file_data) / (1024*1024),
+                    "estimated_size": f"{len(file_data)/(1024*1024):.1f}MB",
+                    "message": f"✓ Exact boundary clip ready ({len(file_data)/(1024*1024):.1f} MB)"
                 }
             except Exception as download_error:
                 error_msg = str(download_error)
-                return {"success": False, "error": f"Download failed: {error_msg}"}
+                return {"success": False, "error": f"Exact clipping failed: {error_msg}"}
         
         elif export_format == 'CSV':
             points = ee.FeatureCollection.randomPoints(region, 100)
