@@ -58,17 +58,17 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 
 ### Mumbai (600 km²) - Sentinel-2 Complete History
 
-| Method | Files | Size | Storage Cost | vs GEE Basic | vs GEE Pro |
-|--------|-------|------|--------------|--------------|------------|
+| Method | Files | Size | Storage Cost | Savings vs GEE Basic | Savings vs GEE Pro |
+|--------|-------|------|--------------|----------------------|--------------------|
 | Individual Images | 3,124 | 156 GB | $36/year | 167x cheaper | 667x cheaper |
 | Time Series | 781 | 39 GB | $8/year | 750x cheaper | 3,000x cheaper |
 | Monthly Composites | 128 | 9.6 GB | $1/year | 6,000x cheaper | 24,000x cheaper |
-| **Annual Composites** | **11** | **1.1 GB** | **$0/year** | **∞** | **∞** |
+| **Annual Composites** | **11** | **1.1 GB** | **$0/year** | **∞ (FREE)** | **∞ (FREE)** |
 
 ### Maharashtra (307,713 km²) - Sentinel-2 Complete History
 
-| Method | Files | Size | Storage Cost | vs GEE Basic | vs GEE Pro |
-|--------|-------|------|--------------|--------------|------------|
+| Method | Files | Size | Storage Cost | Savings vs GEE Basic | Savings vs GEE Pro |
+|--------|-------|------|--------------|----------------------|--------------------|
 | Individual Images | 37,450 | 7.49 TB | $1,798/year | 3x cheaper | 13x cheaper |
 | Time Series | 781 | 1.56 TB | $374/year | 16x cheaper | 64x cheaper |
 | Monthly Composites | 128 | 256 GB | $60/year | 100x cheaper | 400x cheaper |
@@ -76,9 +76,9 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 
 ### India (3,287,263 km²) - Sentinel-2 Complete History
 
-| Method | Files | Size | Storage Cost | vs GEE Basic | vs GEE Pro |
-|--------|-------|------|--------------|--------------|------------|
-| Individual Images | 273,385 | 68.3 TB | $16,392/year | 0.4x | 1.5x |
+| Method | Files | Size | Storage Cost | Savings vs GEE Basic | Savings vs GEE Pro |
+|--------|-------|------|--------------|----------------------|--------------------|
+| Individual Images | 273,385 | 68.3 TB | $16,392/year | GEE Basic cheaper | 1.5x cheaper |
 | Time Series | 781 | 19.5 TB | $4,680/year | 1.3x cheaper | 5x cheaper |
 | Monthly Composites | 128 | 2.56 TB | $614/year | 10x cheaper | 39x cheaper |
 | **Annual Composites** | **11** | **275 GB** | **$66/year** | **91x cheaper** | **364x cheaper** |
