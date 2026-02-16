@@ -1,110 +1,5 @@
 # Comprehensive Cost & Space Analysis: All GEE Datasets
 
-## Visual Cost Analysis
-
-### Method Comparison Across Regions
-![Method Comparison](images/method_comparison.png)
-
-**Analysis**: Side-by-side comparison of all 4 composite methods:
-- **Individual Composites**: Highest cost, maximum detail
-- **Time Series**: 4-5x cheaper than individual
-- **Monthly Composites**: 10-50x cheaper than individual
-- **Annual Composites**: 100-1000x cheaper than individual
-
----
-
-### Cost Heatmap (Complete Matrix)
-![Cost Heatmap](images/cost_heatmap.png)
-
-**Analysis**: Complete cost matrix showing every combination:
-- **Green cells**: FREE or very low cost (<$5/year)
-- **Yellow cells**: Moderate cost ($5-$100/year)
-- **Red cells**: High cost (>$100/year)
-
-**Pattern**: Annual composites are green across all datasets and regions.
-
----
-
----
-
-## Composite Method Comparison Guide
-
-### Method 1: Individual Images
-**Description**: Store every single satellite image separately
-
-**Characteristics**:
-- **File count**: Thousands to hundreds of thousands
-- **Temporal resolution**: Every satellite pass (2-16 days)
-- **Storage**: Highest (100-1000x more than annual)
-- **Cost**: $36-$16,392/year depending on region
-
-**Best for**:
-- Event detection (floods, fires, disasters)
-- Daily change monitoring
-- Cloud-free image selection
-- Maximum temporal detail
-
-**Example**: Sentinel-2 Mumbai = 3,124 images over 10 years
-
----
-
-### Method 2: Time Series
-**Description**: Organized temporal sequences with reduced redundancy
-
-**Characteristics**:
-- **File count**: One file per satellite visit
-- **Temporal resolution**: Every satellite pass
-- **Storage**: 4-5x less than individual images
-- **Cost**: $8-$4,680/year depending on region
-
-**Best for**:
-- Trend analysis
-- Seasonal pattern detection
-- Time series modeling
-- Phenology studies
-
-**Example**: Sentinel-2 Mumbai = 781 time series files
-
----
-
-### Method 3: Monthly Composites
-**Description**: One best-pixel composite per month
-
-**Characteristics**:
-- **File count**: 12 per year × years of data
-- **Temporal resolution**: Monthly
-- **Storage**: 10-50x less than individual images
-- **Cost**: $1-$614/year depending on region
-
-**Best for**:
-- Monthly monitoring
-- Agricultural cycles
-- Cloud-free imagery
-- Seasonal comparisons
-
-**Example**: Sentinel-2 Mumbai = 128 monthly composites (10.7 years)
-
----
-
-### Method 4: Annual Composites (RECOMMENDED)
-**Description**: One best-pixel composite per year
-
-**Characteristics**:
-- **File count**: One per year
-- **Temporal resolution**: Yearly
-- **Storage**: 100-1000x less than individual images
-- **Cost**: $0-$66/year depending on region (often FREE)
-
-**Best for**:
-- Long-term change detection
-- Land cover classification
-- Year-over-year comparison
-- Cost-effective storage
-
-**Example**: Sentinel-2 Mumbai = 11 annual composites (10.7 years) = FREE
-
----
-
 ## Part 1: Sentinel-2 Detailed Analysis
 
 ### MUMBAI (600 km²) - Complete Historical Data (10.7 years)
@@ -133,52 +28,6 @@
 | Time Series (per visit) | 781 files | 19.5 TB | $0 (free tier) | $4,680/year | $4,680/year |
 | Monthly Composites | 128 files | 2.56 TB | $0 (free tier) | $614/year | $614/year |
 | Annual Composites | 11 files | 275 GB | $0 (free tier) | $66/year | $66/year |
-
----
-
-## Part 2: All 142+ GEE Datasets Cost Analysis
-
-### Dataset Categories & Specifications
-
-#### 1. High-Resolution Optical (10-30m)
-**Datasets**: Sentinel-2 (13 bands), Landsat 8/9 (11 bands), Landsat 7 (8 bands), Landsat 4-5 (7 bands)
-**Temporal Coverage**: 1984-present (Landsat), 2015-present (Sentinel-2)
-**Revisit**: 5-16 days
-
-#### 2. Medium-Resolution Optical (250m-1km)
-**Datasets**: MODIS Terra/Aqua (36 bands), VIIRS (22 bands)
-**Temporal Coverage**: 2000-present (MODIS), 2012-present (VIIRS)
-**Revisit**: Daily
-
-#### 3. Radar/SAR (10-25m)
-**Datasets**: Sentinel-1 (2 bands), ALOS PALSAR (3 bands)
-**Temporal Coverage**: 2014-present (Sentinel-1), 2006-2011 (ALOS)
-**Revisit**: 6-12 days
-
-#### 4. Climate & Weather (25-50km)
-**Datasets**: ERA5 (100+ variables), GRIDMET (8 variables), TerraClimate (14 variables), CHIRPS (1 band)
-**Temporal Coverage**: 1950-present (ERA5), 1979-present (GRIDMET), 1981-present (CHIRPS)
-**Revisit**: Daily/Monthly
-
-#### 5. Land Cover & Classification (10-500m)
-**Datasets**: ESA WorldCover (1 band), Dynamic World (9 bands), MODIS Land Cover (5 bands)
-**Temporal Coverage**: Annual updates
-**Revisit**: Annual
-
-#### 6. Elevation & Terrain (30-90m)
-**Datasets**: SRTM (1 band), ASTER GDEM (1 band), NASADEM (1 band)
-**Temporal Coverage**: Static (one-time)
-**Revisit**: N/A
-
-#### 7. Ocean & Marine (1-9km)
-**Datasets**: Sea Surface Temperature (1 band), Ocean Color (8 bands), Salinity (1 band)
-**Temporal Coverage**: 2002-present
-**Revisit**: Daily/8-day
-
-#### 8. Atmospheric (1-50km)
-**Datasets**: Aerosol Optical Depth (1 band), NO2 (1 band), CO (1 band), Ozone (1 band)
-**Temporal Coverage**: 2000-present
-**Revisit**: Daily
 
 ---
 
@@ -271,180 +120,127 @@
 
 ---
 
-
-
-
-
-
 ## Part 5: Time Series Composites Comparison
+
+### Mumbai (600 km²) - Time Series
+
+| Dataset Type | Duration | Files | Size | This Pipeline | GEE Basic | GEE Pro | Savings |
+|--------------|----------|-------|------|---------------|-----------|---------|---------|
+| Sentinel-2 | 10 years | 781 | 39 GB | $8/year | $6,000 | $24,000 | 750x |
+| Landsat 8/9 | 10 years | 650 | 30 GB | $6/year | $6,000 | $24,000 | 1,000x |
+| Landsat 7 | 20 years | 1,200 | 55 GB | $12/year | $6,000 | $24,000 | 500x |
+| Landsat 4-5 | 30 years | 1,800 | 82 GB | $18/year | $6,000 | $24,000 | 333x |
+| MODIS | 24 years | 2,400 | 50 GB | $11/year | $6,000 | $24,000 | 545x |
+| Sentinel-1 | 10 years | 650 | 95 GB | $21/year | $6,000 | $24,000 | 286x |
+| CHIRPS | 43 years | 3,200 | 130 GB | $29/year | $6,000 | $24,000 | 207x |
+| ERA5 | 74 years | 5,500 | 260 GB | $58/year | $6,000 | $24,000 | 103x |
+| Land Cover | 5 years | 300 | 18 GB | $3/year | $6,000 | $24,000 | 2,000x |
+| DEM (Static) | One-time | 1 | 50 MB | $0 | $6,000 | $24,000 | ∞ |
+| **ALL DATASETS** | **-** | **16,482** | **759 GB** | **$166/year** | **$6,000** | **$24,000** | **36x** |
+
+### Maharashtra (307,713 km²) - Time Series
+
+| Dataset Type | Duration | Files | Size | This Pipeline | GEE Basic | GEE Pro | Savings |
+|--------------|----------|-------|------|---------------|-----------|---------|---------|
+| Sentinel-2 | 10 years | 781 | 1.56 TB | $374/year | $6,000 | $24,000 | 16x |
+| Landsat 8/9 | 10 years | 650 | 1.2 TB | $288/year | $6,000 | $24,000 | 21x |
+| Landsat 7 | 20 years | 1,200 | 2.1 TB | $504/year | $6,000 | $24,000 | 12x |
+| Landsat 4-5 | 30 years | 1,800 | 3.2 TB | $768/year | $6,000 | $24,000 | 8x |
+| MODIS | 24 years | 2,400 | 1.4 TB | $336/year | $6,000 | $24,000 | 18x |
+| Sentinel-1 | 10 years | 650 | 3.8 TB | $912/year | $6,000 | $24,000 | 7x |
+| CHIRPS | 43 years | 3,200 | 5.2 TB | $1,248/year | $6,000 | $24,000 | 5x |
+| ERA5 | 74 years | 5,500 | 10.4 TB | $2,496/year | $6,000 | $24,000 | 2x |
+| Land Cover | 5 years | 300 | 720 GB | $173/year | $6,000 | $24,000 | 35x |
+| DEM (Static) | One-time | 1 | 500 MB | $0 | $6,000 | $24,000 | ∞ |
+| **ALL DATASETS** | **-** | **16,482** | **30 TB** | **$7,099/year** | **$6,000** | **$24,000** | **GEE Basic 0.8x (cheaper), GEE Pro 3.4x** |
+
+### India (3,287,263 km²) - Time Series
+
+| Dataset Type | Duration | Files | Size | This Pipeline | GEE Basic | GEE Pro | Savings |
+|--------------|----------|-------|------|---------------|-----------|---------|---------|
+| Sentinel-2 | 10 years | 781 | 19.5 TB | $4,680/year | $6,000 | $24,000 | 1.3x |
+| Landsat 8/9 | 10 years | 650 | 15 TB | $3,600/year | $6,000 | $24,000 | 1.7x |
+| Landsat 7 | 20 years | 1,200 | 27 TB | $6,480/year | $6,000 | $24,000 | GEE cheaper |
+| Landsat 4-5 | 30 years | 1,800 | 40.5 TB | $9,720/year | $6,000 | $24,000 | GEE cheaper |
+| MODIS | 24 years | 2,400 | 18 TB | $4,320/year | $6,000 | $24,000 | 1.4x |
+| Sentinel-1 | 10 years | 650 | 48.75 TB | $11,700/year | $6,000 | $24,000 | GEE cheaper |
+| CHIRPS | 43 years | 3,200 | 65 TB | $15,600/year | $6,000 | $24,000 | GEE cheaper |
+| ERA5 | 74 years | 5,500 | 130 TB | $31,200/year | $6,000 | $24,000 | GEE cheaper |
+| Land Cover | 5 years | 300 | 9 TB | $2,160/year | $6,000 | $24,000 | 2.8x |
+| DEM (Static) | One-time | 1 | 5 GB | $0 | $6,000 | $24,000 | ∞ |
+| **ALL DATASETS** | **-** | **16,482** | **373 TB** | **$89,460/year** | **$6,000** | **$24,000** | **GEE is 4-15x cheaper (not recommended)** |
+
+---
 
 ## Part 6: Individual Composites Comparison
 
+### Mumbai (600 km²) - Individual Images
 
-## Part 5: Cost Summary Visualization Data
+| Dataset Type | Duration | Files | Size | This Pipeline | GEE Basic | GEE Pro | Savings |
+|--------------|----------|-------|------|---------------|-----------|---------|---------|
+| Sentinel-2 | 10 years | 3,124 | 156 GB | $36/year | $6,000 | $24,000 | 167x |
+| Landsat 8/9 | 10 years | 2,600 | 120 GB | $27/year | $6,000 | $24,000 | 222x |
+| Landsat 7 | 20 years | 4,800 | 220 GB | $50/year | $6,000 | $24,000 | 120x |
+| Landsat 4-5 | 30 years | 7,200 | 330 GB | $75/year | $6,000 | $24,000 | 80x |
+| MODIS | 24 years | 9,600 | 200 GB | $45/year | $6,000 | $24,000 | 133x |
+| Sentinel-1 | 10 years | 2,600 | 380 GB | $86/year | $6,000 | $24,000 | 70x |
+| CHIRPS | 43 years | 12,800 | 520 GB | $118/year | $6,000 | $24,000 | 51x |
+| ERA5 | 74 years | 22,000 | 1,040 GB | $236/year | $6,000 | $24,000 | 25x |
+| Land Cover | 5 years | 1,200 | 72 GB | $16/year | $6,000 | $24,000 | 375x |
+| DEM (Static) | One-time | 1 | 50 MB | $0 | $6,000 | $24,000 | ∞ |
+| **ALL DATASETS** | **-** | **65,925** | **3,038 GB** | **$689/year** | **$6,000** | **$24,000** | **9x (Basic), 35x (Pro)** |
 
-### Cost Comparison: This Pipeline vs GEE Commercial (Annual Composites)
+### Maharashtra (307,713 km²) - Individual Images
 
-```
-Mumbai (600 km²) - All Datasets:
-├─ This Pipeline: $0/year (13.8 GB - under free tier)
-├─ GEE Basic: $6,000/year
-└─ GEE Pro: $24,000/year
-   Savings: ∞ (infinite)
+| Dataset Type | Duration | Files | Size | This Pipeline | GEE Basic | GEE Pro | Savings |
+|--------------|----------|-------|------|---------------|-----------|---------|---------|
+| Sentinel-2 | 10 years | 37,450 | 7.49 TB | $1,798/year | $6,000 | $24,000 | 3x |
+| Landsat 8/9 | 10 years | 31,200 | 5.76 TB | $1,382/year | $6,000 | $24,000 | 4x |
+| Landsat 7 | 20 years | 57,600 | 10.56 TB | $2,534/year | $6,000 | $24,000 | 2x |
+| Landsat 4-5 | 30 years | 86,400 | 15.84 TB | $3,802/year | $6,000 | $24,000 | 1.6x |
+| MODIS | 24 years | 115,200 | 9.6 TB | $2,304/year | $6,000 | $24,000 | 3x |
+| Sentinel-1 | 10 years | 31,200 | 45.76 TB | $10,982/year | $6,000 | $24,000 | GEE cheaper |
+| CHIRPS | 43 years | 153,600 | 62.4 TB | $14,976/year | $6,000 | $24,000 | GEE cheaper |
+| ERA5 | 74 years | 264,000 | 124.8 TB | $29,952/year | $6,000 | $24,000 | GEE cheaper |
+| Land Cover | 5 years | 14,400 | 8.64 TB | $2,074/year | $6,000 | $24,000 | 3x |
+| DEM (Static) | One-time | 1 | 500 MB | $0 | $6,000 | $24,000 | ∞ |
+| **ALL DATASETS** | **-** | **791,051** | **290 TB** | **$69,804/year** | **$6,000** | **$24,000** | **GEE is 3-12x cheaper** |
 
-Maharashtra (307,713 km²) - All Datasets:
-├─ This Pipeline: $58/year (283 GB)
-├─ GEE Basic: $6,000/year
-└─ GEE Pro: $24,000/year
-   Savings: 103x (Basic), 414x (Pro)
+### India (3,287,263 km²) - Individual Images
 
-India (3,287,263 km²) - All Datasets:
-├─ This Pipeline: $568/year (2.4 TB)
-├─ GEE Basic: $6,000/year
-└─ GEE Pro: $24,000/year
-   Savings: 11x (Basic), 42x (Pro)
-```
-
-### Storage Cost Breakdown (Annual Composites - All Datasets)
-
-**Mumbai**: 13.8 GB total
-- First 5 GB: $0 (FREE)
-- Remaining 8.8 GB: $0/year (under free tier)
-- **Total: $0/year**
-
-**Maharashtra**: 283 GB total
-- First 5 GB: $0 (FREE)
-- Remaining 278 GB: $278 × $0.02 × 12 = $67/year
-- Actual: $58/year (with compression)
-- **Total: $58/year**
-
-**India**: 2.4 TB (2,415 GB) total
-- First 5 GB: $0 (FREE)
-- Remaining 2,410 GB: $2,410 × $0.02 × 12 = $579/year
-- Actual: $568/year (with compression)
-- **Total: $568/year**
-
----
-
-## Part 6: Dataset-Specific Recommendations
-
-### Best Composite Method by Use Case
-
-| Use Case | Region Size | Recommended Method | Typical Cost/Year |
-|----------|-------------|-------------------|-------------------|
-| Land cover change | City | Annual | $0 |
-| Vegetation monitoring | City | Monthly | $0-$13 |
-| Climate analysis | State | Annual | $7-$58 |
-| Flood mapping | State | Time Series | $8-$374 |
-| Agricultural monitoring | State | Monthly | $60-$278 |
-| National assessment | Country | Annual | $66-$568 |
-| Disaster response | Country | Time Series | $374-$4,680 |
-| Multi-temporal analysis | Country | Monthly | $614-$2,846 |
-
-### Storage Optimization Strategy
-
-**For Cities (<1,000 km²)**:
-- Use Annual Composites for all datasets
-- Total storage: <20 GB
-- **Cost: $0/year (under free tier)**
-
-**For States (100,000-500,000 km²)**:
-- Use Annual Composites for optical/radar
-- Use Monthly for climate data
-- Total storage: 200-400 GB
-- **Cost: $50-$100/year**
-
-**For Countries (>1,000,000 km²)**:
-- Use Annual Composites only
-- Download specific bands only
-- Total storage: 1-3 TB
-- **Cost: $250-$700/year**
+| Dataset Type | Duration | Files | Size | This Pipeline | GEE Basic | GEE Pro | Savings |
+|--------------|----------|-------|------|---------------|-----------|---------|---------|
+| Sentinel-2 | 10 years | 273,385 | 68.3 TB | $16,392/year | $6,000 | $24,000 | GEE cheaper |
+| Landsat 8/9 | 10 years | 228,000 | 52.5 TB | $12,600/year | $6,000 | $24,000 | GEE cheaper |
+| Landsat 7 | 20 years | 420,000 | 96.6 TB | $23,184/year | $6,000 | $24,000 | GEE cheaper |
+| Landsat 4-5 | 30 years | 630,000 | 145 TB | $34,800/year | $6,000 | $24,000 | GEE cheaper |
+| MODIS | 24 years | 840,000 | 87.6 TB | $21,024/year | $6,000 | $24,000 | GEE cheaper |
+| Sentinel-1 | 10 years | 228,000 | 418 TB | $100,320/year | $6,000 | $24,000 | GEE cheaper |
+| CHIRPS | 43 years | 1,120,000 | 570 TB | $136,800/year | $6,000 | $24,000 | GEE cheaper |
+| ERA5 | 74 years | 1,927,000 | 1,140 TB | $273,600/year | $6,000 | $24,000 | GEE cheaper |
+| Land Cover | 5 years | 105,000 | 78.75 TB | $18,900/year | $6,000 | $24,000 | GEE cheaper |
+| DEM (Static) | One-time | 1 | 5 GB | $0 | $6,000 | $24,000 | ∞ |
+| **ALL DATASETS** | **-** | **5,771,386** | **2,656 TB** | **$637,620/year** | **$6,000** | **$24,000** | **GEE is 27-106x cheaper** |
 
 ---
 
-## Part 7: Key Findings
+## Part 7: Cost Summary by Method
 
-### Cost Efficiency by Region
+### All Methods Cost Comparison
 
-1. **Mumbai (Small City)**:
-   - All 10 datasets, complete history: **$0/year**
-   - GEE Commercial: **$6,000-$24,000/year**
-   - **Savings: Infinite (100% free)**
-
-2. **Maharashtra (Large State)**:
-   - All 10 datasets, complete history: **$58/year**
-   - GEE Commercial: **$6,000-$24,000/year**
-   - **Savings: 103-414x**
-
-3. **India (Country)**:
-   - All 10 datasets, complete history: **$568/year**
-   - GEE Commercial: **$6,000-$24,000/year**
-   - **Savings: 11-42x**
-
-### When This Pipeline Is Most Cost-Effective
-
-✅ **Cities & Small Regions**: 100% FREE (infinite savings)
-✅ **States & Medium Regions**: 100-400x cheaper
-✅ **Countries & Large Regions**: 10-40x cheaper
-✅ **Multiple Datasets**: Savings multiply with each dataset
-✅ **Long Historical Archives**: One-time download, permanent access
-
-### When GEE Commercial Makes Sense
-
-⚠️ **Commercial use** (required by license)
-⚠️ **Real-time processing** (no downloads)
-⚠️ **Statistical analysis only** (no image storage)
-⚠️ **Enterprise teams** (5+ developers)
-⚠️ **SLA requirements** (99.5% uptime)
+| Region | Method | Files | Storage | Annual Cost | vs GEE Basic | vs GEE Pro |
+|--------|--------|-------|---------|-------------|--------------|------------|
+| **Mumbai** | Annual | 236 | 13.8 GB | $0 | ∞ | ∞ |
+| **Mumbai** | Monthly | 1,172 | 60 GB | $13 | 462x | 1,846x |
+| **Mumbai** | Time Series | 16,482 | 759 GB | $166 | 36x | 145x |
+| **Mumbai** | Individual | 65,925 | 3.04 TB | $689 | 9x | 35x |
+| **Maharashtra** | Annual | 236 | 283 GB | $58 | 103x | 414x |
+| **Maharashtra** | Monthly | 1,172 | 1.2 TB | $278 | 22x | 86x |
+| **Maharashtra** | Time Series | 16,482 | 30 TB | $7,099 | GEE cheaper | 3.4x |
+| **Maharashtra** | Individual | 791,051 | 290 TB | $69,804 | GEE cheaper | GEE cheaper |
+| **India** | Annual | 236 | 2.4 TB | $568 | 11x | 42x |
+| **India** | Monthly | 1,172 | 12 TB | $2,846 | 2x | 8x |
+| **India** | Time Series | 16,482 | 373 TB | $89,460 | GEE cheaper | GEE cheaper |
+| **India** | Individual | 5,771,386 | 2,656 TB | $637,620 | GEE cheaper | GEE cheaper |
 
 ---
-
-## Part 8: Total Cost of Ownership (5 Years)
-
-### Mumbai - All Datasets (5 Year TCO)
-
-| Method | Storage | This Pipeline | GEE Basic | GEE Pro |
-|--------|---------|---------------|-----------|---------|
-| Annual | 13.8 GB | $0 | $30,000 | $120,000 |
-| Monthly | 60 GB | $65 | $30,000 | $120,000 |
-
-### Maharashtra - All Datasets (5 Year TCO)
-
-| Method | Storage | This Pipeline | GEE Basic | GEE Pro |
-|--------|---------|---------------|-----------|---------|
-| Annual | 283 GB | $290 | $30,000 | $120,000 |
-| Monthly | 1.2 TB | $1,390 | $30,000 | $120,000 |
-
-### India - All Datasets (5 Year TCO)
-
-| Method | Storage | This Pipeline | GEE Basic | GEE Pro |
-|--------|---------|---------------|-----------|---------|
-| Annual | 2.4 TB | $2,840 | $30,000 | $120,000 |
-| Monthly | 12 TB | $14,230 | $30,000 | $120,000 |
-
-**5-Year Savings**:
-- Mumbai: $30,000-$120,000 (100% savings)
-- Maharashtra: $28,610-$119,710 (99% savings)
-- India: $15,770-$105,770 (89-93% savings)
-
----
-
-## Conclusion
-
-### Bottom Line
-
-**For Non-Commercial Research**:
-- Small regions: **100% FREE** (infinite savings)
-- Medium regions: **99% cheaper** than GEE Commercial
-- Large regions: **90% cheaper** than GEE Commercial
-
-**Actual Costs**:
-- GEE Processing: **$0** (free tier)
-- Storage: **$0.02/GB/month** (after 5GB free)
-- No base fees, no subscriptions
-
-**GEE Commercial Required For**:
-- Commercial use
-- Enterprise teams
-- SLA guarantees
-- Real-time cloud processing at scale

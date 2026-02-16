@@ -1,19 +1,5 @@
 # GEE Data Pipeline: Complete Cost Analysis with Visualizations
 
-## Quick Summary
-
-This pipeline provides access to **142+ Google Earth Engine datasets** with **massive cost savings** compared to GEE Commercial License.
-
-### Cost Comparison at a Glance
-
-| Region | All Datasets (Annual) | This Pipeline | GEE Basic | GEE Pro | Savings |
-|--------|----------------------|---------------|-----------|---------|---------|
-| **Mumbai** | 13.8 GB | **$0/year** | $6,000/year | $24,000/year | **∞** |
-| **Maharashtra** | 283 GB | **$58/year** | $6,000/year | $24,000/year | **103x** |
-| **India** | 2.4 TB | **$568/year** | $6,000/year | $24,000/year | **11x** |
-
----
-
 ## Visualizations
 
 ### 1. Method Comparison Across Regions
