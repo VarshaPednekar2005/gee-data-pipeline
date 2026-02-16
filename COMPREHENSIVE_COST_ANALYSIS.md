@@ -25,18 +25,6 @@
 
 ---
 
-### Savings by Method vs GEE Commercial
-![Savings by Method](images/savings_by_method.png)
-
-**Analysis**: Total cost comparison for all datasets combined:
-- **This Pipeline**: Varies by method and region
-- **GEE Basic**: Fixed $6,000/year
-- **GEE Pro**: Fixed $24,000/year
-
-**Savings multiplier** shown above each bar.
-
----
-
 ---
 
 ## Composite Method Comparison Guide

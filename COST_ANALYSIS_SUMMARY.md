@@ -30,13 +30,6 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 
 ---
 
-### 3. Savings by Method
-![Savings by Method](images/savings_by_method.png)
-
-**Key Insight**: Total cost comparison vs GEE Basic/Pro for each composite method.
-
----
-
 ### 4. Cost Comparison Pie Charts
 ![Cost Comparison](images/cost_comparison_pie.png)
 
