@@ -1,5 +1,122 @@
 # Comprehensive Cost & Space Analysis: All GEE Datasets
 
+## Visual Cost Analysis
+
+### Method Comparison Across Regions
+![Method Comparison](images/method_comparison.png)
+
+**Analysis**: Side-by-side comparison of all 4 composite methods:
+- **Individual Composites**: Highest cost, maximum detail
+- **Time Series**: 4-5x cheaper than individual
+- **Monthly Composites**: 10-50x cheaper than individual
+- **Annual Composites**: 100-1000x cheaper than individual
+
+---
+
+### Cost Heatmap (Complete Matrix)
+![Cost Heatmap](images/cost_heatmap.png)
+
+**Analysis**: Complete cost matrix showing every combination:
+- **Green cells**: FREE or very low cost (<$5/year)
+- **Yellow cells**: Moderate cost ($5-$100/year)
+- **Red cells**: High cost (>$100/year)
+
+**Pattern**: Annual composites are green across all datasets and regions.
+
+---
+
+### Savings by Method vs GEE Commercial
+![Savings by Method](images/savings_by_method.png)
+
+**Analysis**: Total cost comparison for all datasets combined:
+- **This Pipeline**: Varies by method and region
+- **GEE Basic**: Fixed $6,000/year
+- **GEE Pro**: Fixed $24,000/year
+
+**Savings multiplier** shown above each bar.
+
+---
+
+---
+
+## Composite Method Comparison Guide
+
+### Method 1: Individual Images
+**Description**: Store every single satellite image separately
+
+**Characteristics**:
+- **File count**: Thousands to hundreds of thousands
+- **Temporal resolution**: Every satellite pass (2-16 days)
+- **Storage**: Highest (100-1000x more than annual)
+- **Cost**: $36-$16,392/year depending on region
+
+**Best for**:
+- Event detection (floods, fires, disasters)
+- Daily change monitoring
+- Cloud-free image selection
+- Maximum temporal detail
+
+**Example**: Sentinel-2 Mumbai = 3,124 images over 10 years
+
+---
+
+### Method 2: Time Series
+**Description**: Organized temporal sequences with reduced redundancy
+
+**Characteristics**:
+- **File count**: One file per satellite visit
+- **Temporal resolution**: Every satellite pass
+- **Storage**: 4-5x less than individual images
+- **Cost**: $8-$4,680/year depending on region
+
+**Best for**:
+- Trend analysis
+- Seasonal pattern detection
+- Time series modeling
+- Phenology studies
+
+**Example**: Sentinel-2 Mumbai = 781 time series files
+
+---
+
+### Method 3: Monthly Composites
+**Description**: One best-pixel composite per month
+
+**Characteristics**:
+- **File count**: 12 per year × years of data
+- **Temporal resolution**: Monthly
+- **Storage**: 10-50x less than individual images
+- **Cost**: $1-$614/year depending on region
+
+**Best for**:
+- Monthly monitoring
+- Agricultural cycles
+- Cloud-free imagery
+- Seasonal comparisons
+
+**Example**: Sentinel-2 Mumbai = 128 monthly composites (10.7 years)
+
+---
+
+### Method 4: Annual Composites (RECOMMENDED)
+**Description**: One best-pixel composite per year
+
+**Characteristics**:
+- **File count**: One per year
+- **Temporal resolution**: Yearly
+- **Storage**: 100-1000x less than individual images
+- **Cost**: $0-$66/year depending on region (often FREE)
+
+**Best for**:
+- Long-term change detection
+- Land cover classification
+- Year-over-year comparison
+- Cost-effective storage
+
+**Example**: Sentinel-2 Mumbai = 11 annual composites (10.7 years) = FREE
+
+---
+
 ## Part 1: Sentinel-2 Detailed Analysis
 
 ### MUMBAI (600 km²) - Complete Historical Data (10.7 years)
