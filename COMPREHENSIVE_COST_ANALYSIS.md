@@ -1,6 +1,44 @@
 # Comprehensive Cost & Space Analysis: All GEE Datasets
 
-## Part 1: Sentinel-2 Detailed Analysis
+## Part 1: Visualizations
+
+### 1. Method Comparison Across Regions
+![Method Comparison](images/method_comparison.png)
+
+### 2. Cost Heatmap (Dataset × Method × Region)
+![Cost Heatmap](images/cost_heatmap.png)
+
+### 3. Storage Costs by Composite Method
+![Storage Costs](images/storage_cost_bars.png)
+
+### 4. Dataset-Specific Costs
+![Dataset Comparison](images/dataset_comparison.png)
+
+### Understanding Composite Methods
+
+**1. Individual Images**: Every satellite pass stored separately
+- **Pros**: Maximum temporal detail, no data loss
+- **Cons**: Highest storage cost, most files to manage
+- **Use case**: Detailed change detection, event analysis
+
+**2. Time Series**: Organized temporal sequences
+- **Pros**: Good temporal resolution, easier analysis
+- **Cons**: Still high storage, complex processing
+- **Use case**: Trend analysis, seasonal studies
+
+**3. Monthly Composites**: One image per month (best pixel selection)
+- **Pros**: Balanced cost/detail, cloud-free imagery
+- **Cons**: Loses daily variations
+- **Use case**: Monthly monitoring, agricultural cycles
+
+**4. Annual Composites**: One image per year (best pixel selection)
+- **Pros**: Lowest cost, long-term trends, minimal storage
+- **Cons**: Loses seasonal variations
+- **Use case**: Year-over-year comparison, land cover change
+
+---
+
+## Part 2: Sentinel-2 Detailed Analysis
 
 ### MUMBAI (600 km²) - Complete Historical Data (10.7 years)
 
