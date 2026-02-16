@@ -68,13 +68,6 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 
 ---
 
-### 8. Savings Multiplier
-![Savings Multiplier](images/savings_multiplier.png)
-
-**Key Insight**: Smaller regions = infinite savings (100% free). Larger regions = 10-400x savings.
-
----
-
 ## Detailed Cost Tables
 
 ### Understanding Composite Methods
@@ -132,7 +125,85 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 
 ## All Datasets Cost Comparison
 
-### Mumbai - All 10 Major Datasets (Annual Composites)
+### Mumbai - All 10 Major Datasets
+
+#### Annual Composites (RECOMMENDED - Lowest Cost)
+
+| Dataset | Duration | Files | Size | Cost/Year |
+|---------|----------|-------|------|-----------|
+| Sentinel-2 | 10 years | 11 | 1.1 GB | $0 |
+| Landsat 8/9 | 10 years | 11 | 800 MB | $0 |
+| Landsat 7 | 20 years | 21 | 1.5 GB | $0 |
+| Landsat 4-5 | 30 years | 31 | 2.2 GB | $0 |
+| MODIS | 24 years | 25 | 500 MB | $0 |
+| Sentinel-1 | 10 years | 11 | 2 GB | $0 |
+| CHIRPS | 43 years | 44 | 1.8 GB | $0 |
+| ERA5 | 74 years | 75 | 3.5 GB | $0 |
+| Land Cover | 5 years | 6 | 300 MB | $0 |
+| DEM | One-time | 1 | 50 MB | $0 |
+| **TOTAL** | **-** | **236** | **13.8 GB** | **$0** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **Infinite savings (100% FREE)**
+
+#### Monthly Composites
+
+| Dataset | Files | Size | Cost/Year |
+|---------|-------|------|-----------|
+| Sentinel-2 | 128 | 9.6 GB | $1 |
+| Landsat 8/9 | 120 | 7 GB | $0 |
+| Landsat 7 | 240 | 14 GB | $2 |
+| Landsat 4-5 | 360 | 21 GB | $4 |
+| MODIS | 288 | 6 GB | $0 |
+| Sentinel-1 | 120 | 18 GB | $3 |
+| CHIRPS | 516 | 20 GB | $4 |
+| ERA5 | 888 | 42 GB | $9 |
+| Land Cover | 60 | 3.6 GB | $0 |
+| DEM | 1 | 50 MB | $0 |
+| **TOTAL** | **2,721** | **141 GB** | **$23** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **261-1,043x savings**
+
+#### Time Series
+
+| Dataset | Files | Size | Cost/Year |
+|---------|-------|------|-----------|
+| Sentinel-2 | 781 | 39 GB | $8 |
+| Landsat 8/9 | 650 | 30 GB | $6 |
+| Landsat 7 | 1,200 | 55 GB | $12 |
+| Landsat 4-5 | 1,800 | 82 GB | $18 |
+| MODIS | 2,400 | 50 GB | $11 |
+| Sentinel-1 | 650 | 95 GB | $21 |
+| CHIRPS | 3,200 | 130 GB | $29 |
+| ERA5 | 5,500 | 260 GB | $58 |
+| Land Cover | 300 | 18 GB | $3 |
+| DEM | 1 | 50 MB | $0 |
+| **TOTAL** | **16,482** | **759 GB** | **$166** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **36-145x savings**
+
+#### Individual Images (Maximum Detail)
+
+| Dataset | Files | Size | Cost/Year |
+|---------|-------|------|-----------|
+| Sentinel-2 | 3,124 | 156 GB | $36 |
+| Landsat 8/9 | 2,600 | 120 GB | $27 |
+| Landsat 7 | 4,800 | 220 GB | $50 |
+| Landsat 4-5 | 7,200 | 330 GB | $75 |
+| MODIS | 9,600 | 200 GB | $45 |
+| Sentinel-1 | 2,600 | 380 GB | $86 |
+| CHIRPS | 12,800 | 520 GB | $118 |
+| ERA5 | 22,000 | 1,040 GB | $236 |
+| Land Cover | 1,200 | 72 GB | $16 |
+| DEM | 1 | 50 MB | $0 |
+| **TOTAL** | **65,925** | **3,038 GB** | **$689** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **9-35x savings**
+
+---
+
+### Maharashtra - All 10 Major Datasets
+
+#### Annual Composites (RECOMMENDED - Lowest Cost)
 
 | Dataset | Duration | Files | Size | Cost/Year |
 |---------|----------|-------|------|-----------|
@@ -150,7 +221,7 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 
 **vs GEE Commercial**: $6,000-$24,000/year → **Infinite savings**
 
-### Maharashtra - All 10 Major Datasets (Annual Composites)
+#### Annual Composites (RECOMMENDED - Lowest Cost)
 
 | Dataset | Duration | Files | Size | Cost/Year |
 |---------|----------|-------|------|-----------|
@@ -168,7 +239,83 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 
 **vs GEE Commercial**: $6,000-$24,000/year → **103-414x savings**
 
-### India - All 10 Major Datasets (Annual Composites)
+#### Monthly Composites
+
+| Dataset | Files | Size | Cost/Year |
+|---------|-------|------|-----------|
+| Sentinel-2 | 128 | 256 GB | $60 |
+| Landsat 8/9 | 120 | 190 GB | $44 |
+| Landsat 7 | 240 | 340 GB | $79 |
+| Landsat 4-5 | 360 | 510 GB | $119 |
+| MODIS | 288 | 140 GB | $32 |
+| Sentinel-1 | 120 | 380 GB | $90 |
+| CHIRPS | 516 | 220 GB | $52 |
+| ERA5 | 888 | 420 GB | $98 |
+| Land Cover | 60 | 36 GB | $8 |
+| DEM | 1 | 500 MB | $0 |
+| **TOTAL** | **2,721** | **2,492 GB** | **$582** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **10-41x savings**
+
+#### Time Series
+
+| Dataset | Files | Size | Cost/Year |
+|---------|-------|------|-----------|
+| Sentinel-2 | 781 | 1.56 TB | $374 |
+| Landsat 8/9 | 650 | 1.2 TB | $288 |
+| Landsat 7 | 1,200 | 2.1 TB | $504 |
+| Landsat 4-5 | 1,800 | 3.2 TB | $768 |
+| MODIS | 2,400 | 1.4 TB | $336 |
+| Sentinel-1 | 650 | 3.8 TB | $912 |
+| CHIRPS | 3,200 | 5.2 TB | $1,248 |
+| ERA5 | 5,500 | 10.4 TB | $2,496 |
+| Land Cover | 300 | 720 GB | $173 |
+| DEM | 1 | 500 MB | $0 |
+| **TOTAL** | **16,482** | **30 TB** | **$7,099** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **GEE Basic cheaper, GEE Pro 3.4x more expensive**
+
+#### Individual Images (Maximum Detail)
+
+| Dataset | Files | Size | Cost/Year |
+|---------|-------|------|-----------|
+| Sentinel-2 | 37,450 | 7.49 TB | $1,798 |
+| Landsat 8/9 | 31,200 | 5.76 TB | $1,382 |
+| Landsat 7 | 57,600 | 10.56 TB | $2,534 |
+| Landsat 4-5 | 86,400 | 15.84 TB | $3,802 |
+| MODIS | 115,200 | 9.6 TB | $2,304 |
+| Sentinel-1 | 31,200 | 45.76 TB | $10,982 |
+| CHIRPS | 153,600 | 62.4 TB | $14,976 |
+| ERA5 | 264,000 | 124.8 TB | $29,952 |
+| Land Cover | 14,400 | 8.64 TB | $2,074 |
+| DEM | 1 | 500 MB | $0 |
+| **TOTAL** | **791,051** | **290 TB** | **$69,804** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **GEE is 3-12x cheaper (not recommended for this scale)**
+
+---
+
+### India - All 10 Major Datasets
+
+#### Annual Composites (RECOMMENDED - Lowest Cost)
+
+| Dataset | Duration | Files | Size | Cost/Year |
+|---------|----------|-------|------|-----------|
+| Sentinel-2 | 10 years | 11 | 33 GB | $7 |
+| Landsat 8/9 | 10 years | 11 | 25 GB | $5 |
+| Landsat 7 | 20 years | 21 | 45 GB | $10 |
+| Landsat 4-5 | 30 years | 31 | 65 GB | $14 |
+| MODIS | 24 years | 25 | 12 GB | $2 |
+| Sentinel-1 | 10 years | 11 | 40 GB | $8 |
+| CHIRPS | 43 years | 44 | 20 GB | $4 |
+| ERA5 | 74 years | 75 | 35 GB | $7 |
+| Land Cover | 5 years | 6 | 8 GB | $1 |
+| DEM | One-time | 1 | 500 MB | $0 |
+| **TOTAL** | **-** | **236** | **283 GB** | **$58** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **103-414x savings**
+
+#### Annual Composites (RECOMMENDED - Lowest Cost)
 
 | Dataset | Duration | Files | Size | Cost/Year |
 |---------|----------|-------|------|-----------|
@@ -186,48 +333,81 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 
 **vs GEE Commercial**: $6,000-$24,000/year → **11-42x savings**
 
----
-
-## Monthly Composites Comparison
-
-### Mumbai - Monthly Composites (All Datasets)
-
-| Dataset | Files | Size | Cost/Year |
-|---------|-------|------|-----------|
-| Sentinel-2 | 128 | 9.6 GB | $1 |
-| Landsat 8/9 | 120 | 7 GB | $0 |
-| MODIS | 288 | 6 GB | $0 |
-| Sentinel-1 | 120 | 18 GB | $3 |
-| CHIRPS | 516 | 20 GB | $4 |
-| **TOTAL** | **1,172** | **60 GB** | **$13** |
-
-**vs GEE Commercial**: $6,000-$24,000/year → **462-1,846x savings**
-
-### Maharashtra - Monthly Composites (All Datasets)
-
-| Dataset | Files | Size | Cost/Year |
-|---------|-------|------|-----------|
-| Sentinel-2 | 128 | 256 GB | $60 |
-| Landsat 8/9 | 120 | 190 GB | $44 |
-| MODIS | 288 | 140 GB | $32 |
-| Sentinel-1 | 120 | 380 GB | $90 |
-| CHIRPS | 516 | 220 GB | $52 |
-| **TOTAL** | **1,172** | **1.2 TB** | **$278** |
-
-**vs GEE Commercial**: $6,000-$24,000/year → **22-86x savings**
-
-### India - Monthly Composites (All Datasets)
+#### Monthly Composites
 
 | Dataset | Files | Size | Cost/Year |
 |---------|-------|------|-----------|
 | Sentinel-2 | 128 | 2.56 TB | $614 |
 | Landsat 8/9 | 120 | 1.9 TB | $456 |
+| Landsat 7 | 240 | 3.4 TB | $816 |
+| Landsat 4-5 | 360 | 5.1 TB | $1,224 |
 | MODIS | 288 | 1.4 TB | $336 |
 | Sentinel-1 | 120 | 3.8 TB | $912 |
 | CHIRPS | 516 | 2.2 TB | $528 |
-| **TOTAL** | **1,172** | **12 TB** | **$2,846** |
+| ERA5 | 888 | 4.2 TB | $1,008 |
+| Land Cover | 60 | 360 GB | $86 |
+| DEM | 1 | 5 GB | $0 |
+| **TOTAL** | **2,721** | **25 TB** | **$5,980** |
 
-**vs GEE Commercial**: $6,000-$24,000/year → **2-8x savings**
+**vs GEE Commercial**: $6,000-$24,000/year → **1x (similar to GEE Basic), 4x cheaper than GEE Pro**
+
+#### Time Series
+
+| Dataset | Files | Size | Cost/Year |
+|---------|-------|------|-----------|
+| Sentinel-2 | 781 | 19.5 TB | $4,680 |
+| Landsat 8/9 | 650 | 15 TB | $3,600 |
+| Landsat 7 | 1,200 | 27 TB | $6,480 |
+| Landsat 4-5 | 1,800 | 40.5 TB | $9,720 |
+| MODIS | 2,400 | 18 TB | $4,320 |
+| Sentinel-1 | 650 | 48.75 TB | $11,700 |
+| CHIRPS | 3,200 | 65 TB | $15,600 |
+| ERA5 | 5,500 | 130 TB | $31,200 |
+| Land Cover | 300 | 9 TB | $2,160 |
+| DEM | 1 | 5 GB | $0 |
+| **TOTAL** | **16,482** | **373 TB** | **$89,460** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **GEE is 4-15x cheaper (not recommended for this scale)**
+
+#### Individual Images (Maximum Detail)
+
+| Dataset | Files | Size | Cost/Year |
+|---------|-------|------|-----------|
+| Sentinel-2 | 273,385 | 68.3 TB | $16,392 |
+| Landsat 8/9 | 228,000 | 52.5 TB | $12,600 |
+| Landsat 7 | 420,000 | 96.6 TB | $23,184 |
+| Landsat 4-5 | 630,000 | 145 TB | $34,800 |
+| MODIS | 840,000 | 87.6 TB | $21,024 |
+| Sentinel-1 | 228,000 | 418 TB | $100,320 |
+| CHIRPS | 1,120,000 | 570 TB | $136,800 |
+| ERA5 | 1,927,000 | 1,140 TB | $273,600 |
+| Land Cover | 105,000 | 78.75 TB | $18,900 |
+| DEM | 1 | 5 GB | $0 |
+| **TOTAL** | **5,771,386** | **2,656 TB** | **$637,620** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **GEE is 27-106x cheaper (not recommended for this scale)**
+
+---
+
+## Monthly Composites Comparison (Removed - See Above Tables)
+
+---
+
+| Dataset | Duration | Files | Size | Cost/Year |
+|---------|----------|-------|------|-----------|
+| Sentinel-2 | 10 years | 11 | 275 GB | $65 |
+| Landsat 8/9 | 10 years | 11 | 210 GB | $49 |
+| Landsat 7 | 20 years | 21 | 380 GB | $90 |
+| Landsat 4-5 | 30 years | 31 | 550 GB | $131 |
+| MODIS | 24 years | 25 | 100 GB | $23 |
+| Sentinel-1 | 10 years | 11 | 350 GB | $83 |
+| CHIRPS | 43 years | 44 | 180 GB | $42 |
+| ERA5 | 74 years | 75 | 300 GB | $71 |
+| Land Cover | 5 years | 6 | 65 GB | $14 |
+| DEM | One-time | 1 | 5 GB | $0 |
+| **TOTAL** | **-** | **236** | **2.4 TB** | **$568** |
+
+**vs GEE Commercial**: $6,000-$24,000/year → **11-42x savings**
 
 ---
 
