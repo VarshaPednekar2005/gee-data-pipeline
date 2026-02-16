@@ -271,6 +271,16 @@
 
 ---
 
+
+
+
+
+
+## Part 5: Time Series Composites Comparison
+
+## Part 6: Individual Composites Comparison
+
+
 ## Part 5: Cost Summary Visualization Data
 
 ### Cost Comparison: This Pipeline vs GEE Commercial (Annual Composites)
