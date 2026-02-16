@@ -1,0 +1,83 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                         DATASET PREVIEW                                    ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                            ║
+║  Harmonized Sentinel-2 MSI: MultiSpectral Instrument, Level-2A           ║
+║  Auto-detected ImageCollection                                            ║
+║                                                                            ║
+║  ┌────────────────────────────────────────────────────────────────────┐  ║
+║  │ Dataset Type        │ ImageCollection                              │  ║
+║  │ Region              │ Michigan                                     │  ║
+║  │ Images Found        │ 484                                          │  ║
+║  │ Revisit Interval    │ 5 days  ← AUTO-DETECTED                     │  ║
+║  │ Reduction Method    │ median                                       │  ║
+║  │ Area Coverage       │ 250,493 km²                                  │  ║
+║  │ Native Resolution   │ 10m                                          │  ║
+║  │ Approx File Size    │ 10 MB                                        │  ║
+║  └────────────────────────────────────────────────────────────────────┘  ║
+║                                                                            ║
+║  ┌────────────────────────────────────────────────────────────────────┐  ║
+║  │ Band Information (13 total)                                        │  ║
+║  │ B1, B2, B3, B4, B5, B6, B7, B8, B8A, B9, B11, B12, QA60           │  ║
+║  └────────────────────────────────────────────────────────────────────┘  ║
+║                                                                            ║
+║  ╔════════════════════════════════════════════════════════════════════╗  ║
+║  ║ 📊 Download Mode                                                   ║  ║
+║  ╠════════════════════════════════════════════════════════════════════╣  ║
+║  ║                                                                    ║  ║
+║  ║  ◉ Single Composite File                                          ║  ║
+║  ║    Merge all 484 images into 1 file using median reduction        ║  ║
+║  ║    ✓ Best for general analysis | ✓ Single file to manage         ║  ║
+║  ║                                                                    ║  ║
+║  ║  ○ Time-Series (6 Files)                                          ║  ║
+║  ║    Download 6 separate files, one per 5 days                      ║  ║
+║  ║    (each uses median for that period)                             ║  ║
+║  ║    ✓ Track changes over time | ✓ Better cloud handling           ║  ║
+║  ║                                                                    ║  ║
+║  ╚════════════════════════════════════════════════════════════════════╝  ║
+║                                                                            ║
+║  [ Download to Computer (approx 10 MB) ]                                  ║
+║                                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+
+WHAT HAPPENS WHEN USER CLICKS DOWNLOAD:
+
+Option 1: Single Composite (Default - Radio button selected)
+═══════════════════════════════════════════════════════════
+Downloads: 1 file
+Filename: S2_SR_HARMONIZED_Michigan_20240210_120530.tif
+Contains: All 484 images merged using median reduction
+Size: ~10 MB
+
+
+Option 2: Time-Series (User selects this radio button)
+═══════════════════════════════════════════════════════════
+Exports to Google Drive: 6 files
+
+1. S2_SR_HARMONIZED_Michigan_period1_2024-01-01.tif
+   (Jan 1-5: ~80 images merged with median)
+
+2. S2_SR_HARMONIZED_Michigan_period2_2024-01-06.tif
+   (Jan 6-10: ~80 images merged with median)
+
+3. S2_SR_HARMONIZED_Michigan_period3_2024-01-11.tif
+   (Jan 11-15: ~80 images merged with median)
+
+4. S2_SR_HARMONIZED_Michigan_period4_2024-01-16.tif
+   (Jan 16-20: ~80 images merged with median)
+
+5. S2_SR_HARMONIZED_Michigan_period5_2024-01-21.tif
+   (Jan 21-25: ~80 images merged with median)
+
+6. S2_SR_HARMONIZED_Michigan_period6_2024-01-26.tif
+   (Jan 26-31: ~80 images merged with median)
+
+
+KEY POINTS:
+═══════════════════════════════════════════════════════════
+✓ Revisit interval (5 days) is AUTO-DETECTED
+✓ Number of files (6) is AUTO-CALCULATED
+✓ Reduction method (median) is ALWAYS USED (even for time-series)
+✓ User just selects: 1 file or multiple files
+✓ Everything else is automatic

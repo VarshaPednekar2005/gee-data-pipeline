@@ -1,0 +1,47 @@
+INFO:     Will watch for changes in these directories: ['/home/varshapednekar/projects/gee-data-pipeline']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [18205] using StatReload
+INFO:     Started server process [18239]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:57280 - "GET / HTTP/1.1" 200 OK
+✅ GEE initialized with OAuth (FREE Google Drive access available)
+⚡ Auto-detecting dataset: COPERNICUS/S2_SR_HARMONIZED
+✓ Auto-detected ImageCollection: COPERNICUS/S2_SR_HARMONIZED
+  - Bands: ['B1', 'B2', 'B3']...
+  - Has dates: True
+  - Scale: 60m
+✓ Auto-detected ImageCollection: COPERNICUS/S2_SR_HARMONIZED
+  - Bands: ['B1', 'B2', 'B3']...
+  - Has dates: True
+  - Scale: 60m
+INFO:     127.0.0.1:57294 - "POST /preview HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'clean_downloader.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [18239]
+INFO:     Started server process [19085]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'clean_downloader.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [19085]
+INFO:     Started server process [19184]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'clean_downloader.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [19184]
+INFO:     Started server process [19332]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [19332]
+INFO:     Stopping reloader process [18205]

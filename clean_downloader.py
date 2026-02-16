@@ -69,6 +69,31 @@ def exact_clip_region(image, region, scale):
 class UniversalGEEHandler:
     """Handles ANY Google Earth Engine dataset with auto-detection"""
     
+    # Known revisit intervals from official documentation
+    KNOWN_REVISIT_INTERVALS = {
+        'COPERNICUS/S2': 5,  # Sentinel-2 (per satellite, 5 days)
+        'COPERNICUS/S1': 6,  # Sentinel-1
+        'LANDSAT/LC08': 16,  # Landsat 8
+        'LANDSAT/LC09': 16,  # Landsat 9
+        'LANDSAT/LE07': 16,  # Landsat 7
+        'LANDSAT/LT05': 16,  # Landsat 5
+        'MODIS/006/MOD': 1,  # MODIS Terra (daily)
+        'MODIS/006/MYD': 1,  # MODIS Aqua (daily)
+        'MODIS/061/MOD': 1,  # MODIS Terra (daily)
+        'MODIS/061/MYD': 1,  # MODIS Aqua (daily)
+    }
+    
+    def get_revisit_interval(self, dataset_id: str) -> Dict:
+        """Get revisit interval from known database"""
+        # Check known intervals
+        for key, days in self.KNOWN_REVISIT_INTERVALS.items():
+            if key in dataset_id:
+                print(f"Found known revisit interval: {days} days for {dataset_id}")
+                return {"interval_days": days, "interval_hours": None}
+        
+        print(f"No known revisit interval for {dataset_id}")
+        return {"interval_days": None, "interval_hours": None}
+    
     def detect_dataset_type(self, dataset_id: str) -> Dict:
         """
         AUTO-DETECTION: Works for ANY dataset with comprehensive metadata
@@ -106,29 +131,10 @@ class UniversalGEEHandler:
                     'dimensions': band.get('dimensions', 'Unknown')
                 })
             
-            # Get dataset description and metadata
-            try:
-                # Try to get collection info
-                collection_info = collection.getInfo()
-                description = collection_info.get('description', 'No description available')
-                dataset_type_info = collection_info.get('type', 'ImageCollection')
-            except:
-                description = 'Auto-detected ImageCollection'
-                dataset_type_info = 'ImageCollection'
-            
-            # Get date range if temporal
-            date_range = None
-            if has_time:
-                try:
-                    # Get first and last image dates
-                    first_date = collection.limit(1).first().get('system:time_start')
-                    last_date = collection.sort('system:time_start', False).limit(1).first().get('system:time_start')
-                    
-                    first_date_str = ee.Date(first_date).format('YYYY-MM-dd').getInfo()
-                    last_date_str = ee.Date(last_date).format('YYYY-MM-dd').getInfo()
-                    date_range = f"{first_date_str} to {last_date_str}"
-                except:
-                    date_range = "Available (dates vary by region)"
+            # Skip slow metadata queries for large collections
+            description = 'Auto-detected ImageCollection'
+            dataset_type_info = 'ImageCollection'
+            date_range = "Available (dates vary by region)" if has_time else None
             
             print(f"✓ Auto-detected ImageCollection: {dataset_id}")
             print(f"  - Bands: {band_names[:3]}{'...' if len(band_names) > 3 else ''}")
@@ -309,9 +315,13 @@ class UniversalGEEHandler:
                 except:
                     pass  # Skip if cloud filter fails
             
-            # Check count
+            # Check count (optimized for large collections)
             try:
-                count = collection.size().getInfo()
+                # For large datasets, limit count check to avoid timeout
+                count = collection.limit(1000).size().getInfo()
+                if count == 1000:
+                    # Collection has 1000+ images, use approximate count
+                    count = f"1000+"
             except Exception as e:
                 raise ValueError(f"Failed to get image count. The collection might be empty or have invalid date range. Error: {str(e)}")
             
@@ -378,7 +388,7 @@ def get_region_geometry(region_type, region_data):
     Enhanced region handler supporting multiple input types
     
     Args:
-        region_type: 'country', 'state', 'continent', 'geojson', 'coordinates', 'draw'
+        region_type: 'country', 'state', 'city', 'continent', 'geojson', 'coordinates', 'draw'
         region_data: Either region name (str) or geometry dict for custom regions
     """
     try:
@@ -391,6 +401,50 @@ def get_region_geometry(region_type, region_data):
             return ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
                 ee.Filter.eq('ADM1_NAME', region_data)
             ).geometry()
+            
+        elif region_type == "city":
+            # Use a buffer around city center (approximate 20km radius)
+            # For major cities, use known coordinates
+            city_coords = {
+                "Mumbai": [72.8777, 19.0760],
+                "Delhi": [77.1025, 28.7041],
+                "Bangalore": [77.5946, 12.9716],
+                "Hyderabad": [78.4867, 17.3850],
+                "Chennai": [80.2707, 13.0827],
+                "Kolkata": [88.3639, 22.5726],
+                "Pune": [73.8567, 18.5204],
+                "Ahmedabad": [72.5714, 23.0225],
+                "Surat": [72.8311, 21.1702],
+                "Jaipur": [75.7873, 26.9124],
+                "Lucknow": [80.9462, 26.8467],
+                "Kanpur": [80.3319, 26.4499],
+                "Nagpur": [79.0882, 21.1458],
+                "Indore": [75.8577, 22.7196],
+                "Bhopal": [77.4126, 23.2599],
+                "Visakhapatnam": [83.2185, 17.6868],
+                "Patna": [85.1376, 25.5941],
+                "Vadodara": [73.1812, 22.3072],
+                "Ludhiana": [75.8573, 30.9010],
+                "Agra": [78.0081, 27.1767],
+                "New York": [-74.0060, 40.7128],
+                "Los Angeles": [-118.2437, 34.0522],
+                "Chicago": [-87.6298, 41.8781],
+                "Houston": [-95.3698, 29.7604],
+                "Phoenix": [-112.0740, 33.4484],
+                "Philadelphia": [-75.1652, 39.9526],
+                "San Antonio": [-98.4936, 29.4241],
+                "San Diego": [-117.1611, 32.7157],
+                "Dallas": [-96.7970, 32.7767],
+                "San Jose": [-121.8863, 37.3382]
+            }
+            
+            if region_data in city_coords:
+                lon, lat = city_coords[region_data]
+                # Create 20km buffer around city center
+                point = ee.Geometry.Point([lon, lat])
+                return point.buffer(20000)  # 20km radius
+            else:
+                return None
             
         elif region_type == "continent":
             continent_countries = {
@@ -701,6 +755,10 @@ def home():
                 width: 90%;
                 box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             }
+            .modal-content label:has(input[type="radio"]:checked) {
+                border-color: #1a1a1a;
+                background: #f8f9fa;
+            }
             .progress-bar {
                 width: 100%;
                 height: 24px;
@@ -747,6 +805,8 @@ def home():
                     </div>
                 </div>
                 
+                <input type="hidden" id="revisitDays">
+                
                 <div class="form-row">
                     <div class="form-group">
                         <label for="regionType">Region Selection Method</label>
@@ -754,6 +814,7 @@ def home():
                             <option value="">Select Method</option>
                             <option value="country">Predefined - Country</option>
                             <option value="state">Predefined - State/Province</option>
+                            <option value="city">Predefined - City</option>
                             <option value="continent">Predefined - Continent</option>
                             <option value="geojson">Upload GeoJSON</option>
                             <option value="coordinates">Enter Coordinates</option>
@@ -809,35 +870,11 @@ def home():
             </div>
         </div>
 
-        <div id="folderModal" class="modal">
-            <div class="modal-content">
-                <h3 style="margin-bottom: 1rem;">📁 Choose Drive Folder</h3>
-                <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
-                    This file is large and will be exported to Google Drive. Enter a folder name:
-                </p>
-                <div class="form-group">
-                    <label for="folderNameInput">Folder Name in Google Drive</label>
-                    <input type="text" id="folderNameInput" value="EarthEngineExports" 
-                        placeholder="e.g., MyDatasets, SatelliteImages">
-                    <small style="color: #666; font-size: 0.8rem; margin-top: 0.5rem; display: block;">
-                        If folder doesn't exist, it will be created automatically
-                    </small>
-                </div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
-                    <button class="btn-primary" onclick="startDriveExport()" style="flex: 1;">
-                        Start Export
-                    </button>
-                    <button class="btn-secondary" onclick="closeFolderModal()" style="flex: 1;">
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <script>
             const regions = {
                 country: ["United States", "China", "India", "Brazil", "Russia", "Canada", "Australia", "Germany", "United Kingdom", "France", "Italy", "Spain", "Mexico", "Japan", "South Africa", "Nigeria", "Egypt", "Turkey", "Iran", "Pakistan"],
                 state: ["California", "Texas", "Florida", "New York", "Pennsylvania", "Illinois", "Ohio", "Georgia", "North Carolina", "Michigan", "Maharashtra", "Uttar Pradesh", "Bihar", "West Bengal", "Madhya Pradesh", "Tamil Nadu", "Rajasthan", "Karnataka", "Gujarat", "Andhra Pradesh"],
+                city: ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Kolkata", "Pune", "Ahmedabad", "Surat", "Jaipur", "Lucknow", "Kanpur", "Nagpur", "Indore", "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ludhiana", "Agra", "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose"],
                 continent: ["Asia", "Europe", "Africa", "North America", "South America", "Oceania"]
             };
             
@@ -845,7 +882,7 @@ def home():
                 const method = document.getElementById('regionType').value;
                 const container = document.getElementById('regionInputContainer');
                 
-                if (method === 'country' || method === 'state' || method === 'continent') {
+                if (method === 'country' || method === 'state' || method === 'continent' || method === 'city') {
                     // Existing dropdown selection
                     container.innerHTML = `
                         <div class="form-group">
@@ -1054,12 +1091,21 @@ def home():
                     });
                     
                     const result = await response.json();
+                    console.log('Preview result:', result);
                     
                     if (result.success) {
+                        // Auto-fill revisit interval if detected
+                        console.log('Revisit days:', result.revisit_days, 'Revisit hours:', result.revisit_hours);
+                        if (result.revisit_days) {
+                            document.getElementById('revisitDays').value = result.revisit_days;
+                            console.log('Set revisit days to:', result.revisit_days);
+                        } else if (result.revisit_hours) {
+                            document.getElementById('revisitDays').value = (result.revisit_hours / 24).toFixed(2);
+                            console.log('Set revisit hours to:', result.revisit_hours);
+                        }
+                        
                         // Store band details globally for showAllBands function
                         window.currentBandDetails = result.band_details || result.bands.map(b => ({name: b, data_type: 'N/A', scale: 'N/A', crs: 'N/A'}));
-                        
-                        const optimizedBadge = '<span class="badge auto">⚡ Auto-detected</span>';
                         
                         // Enhanced band details display
                         let bandDetails = '';
@@ -1078,40 +1124,6 @@ def home():
                             ).join('');
                         }
                         
-                        // Date information
-                        let dateInfo = '';
-                        if (result.date_range) {
-                            dateInfo = `<div style="background: #e8f4fd; padding: 0.75rem; border-radius: 6px; margin: 1rem 0; border-left: 3px solid #1976d2;">
-                                <strong style="font-size: 0.85rem;">📅 Temporal Dataset</strong>
-                                <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: #666;">Available: ${result.date_range}</p>
-                            </div>`;
-                        } else if (result.image_date) {
-                            dateInfo = `<div style="background: #f3e5f5; padding: 0.75rem; border-radius: 6px; margin: 1rem 0; border-left: 3px solid #7b1fa2;">
-                                <strong style="font-size: 0.85rem;">📷 Single Image</strong>
-                                <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: #666;">Date: ${result.image_date}</p>
-                            </div>`;
-                        }
-                        
-                        // Sample image display
-                        let sampleImageDisplay = '';
-                        if (result.sample_image_url) {
-                            sampleImageDisplay = `
-                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin: 1rem 0; border: 1px solid #e9ecef;">
-                                    <h4 style="margin-bottom: 0.75rem; color: #666; font-size: 0.85rem;">🖼️ SAMPLE PREVIEW</h4>
-                                    <div style="text-align: center;">
-                                        <img src="${result.sample_image_url.replace('{z}/{x}/{y}', '8/128/128')}" 
-                                             style="max-width: 200px; border-radius: 4px; border: 1px solid #ddd;"
-                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                        <div style="display: none; padding: 2rem; color: #666; font-size: 0.8rem;">
-                                            Preview not available for this dataset
-                                        </div>
-                                    </div>
-                                    <p style="font-size: 0.75rem; color: #666; margin-top: 0.5rem; text-align: center;">
-                                        Sample visualization from dataset center
-                                    </p>
-                                </div>`;
-                        }
-                        
                         // Size warning display
                         let sizeWarningDisplay = '';
                         if (result.size_warning) {
@@ -1127,37 +1139,70 @@ def home():
                                 </div>`;
                         }
                         
-                        const imageCountInfo = result.image_count > 1 ? 
-                            `<div style="background: #fff3cd; padding: 0.75rem; border-radius: 6px; margin: 1rem 0; border-left: 3px solid #ffc107;">
-                                <strong style="font-size: 0.85rem;">📊 ${result.image_count} images found</strong>
-                                <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: #666;">Will be combined using ${result.composite_method} method</p>
-                            </div>` : '';
+                        // Download mode selection for temporal datasets
+                        let downloadModeSelector = '';
+                        if (result.revisit_interval && result.revisit_days) {
+                            console.log('Creating download mode selector for revisit:', result.revisit_interval);
+                            const numPeriods = Math.ceil((new Date(document.getElementById('endDate').value) - new Date(document.getElementById('startDate').value)) / (1000 * 60 * 60 * 24 * result.revisit_days));
+                            console.log('Number of periods:', numPeriods);
+                            downloadModeSelector = `
+                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin: 1rem 0; border: 2px solid #059669;">
+                                    <h4 style="margin: 0 0 0.75rem 0; color: #059669;">📊 Download Mode</h4>
+                                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                        <label style="display: flex; align-items: start; cursor: pointer; padding: 0.75rem; background: white; border: 2px solid #e0e0e0; border-radius: 4px;">
+                                            <input type="radio" name="downloadMode" value="composite" checked style="margin-top: 0.25rem; margin-right: 0.75rem;">
+                                            <div>
+                                                <strong>Single Composite File</strong>
+                                                <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                                    Merge all ${result.image_count} images into 1 file using <strong>${result.composite_method}</strong> reduction
+                                                </div>
+                                                <div style="font-size: 0.8rem; color: #999; margin-top: 0.25rem;">
+                                                    ✓ Best for general analysis | ✓ Single file to manage
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <label style="display: flex; align-items: start; cursor: pointer; padding: 0.75rem; background: white; border: 2px solid #e0e0e0; border-radius: 4px;">
+                                            <input type="radio" name="downloadMode" value="timeseries" style="margin-top: 0.25rem; margin-right: 0.75rem;">
+                                            <div>
+                                                <strong>Time-Series (${numPeriods} Files)</strong>
+                                                <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                                    Download ${numPeriods} separate files, one per ${result.revisit_interval} (each uses ${result.composite_method} for that period)
+                                                </div>
+                                                <div style="font-size: 0.8rem; color: #999; margin-top: 0.25rem;">
+                                                    ✓ Track changes over time | ✓ Better cloud handling per period
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            `;
+                        }
                         
-                            // Size-based download options
-                            const downloadButton = result.estimated_mb > 10 
+                            // Size-based download options with GCS option for all
+                            const downloadButton = result.estimated_mb > 5
                                 ? `<button class="btn-primary" onclick="confirmDownload()">
-                                    Export to Google Drive (${result.estimated_size}) - FREE
+                                    Export to Google Drive (approx ${result.estimated_size})
                                 </button>
-                                <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem; text-align: center;">
-                                    Large files exported to your Google Drive (no size limits)
-                                </p>`
+                                <button class="btn-secondary" onclick="exportToGCS()" style="margin-top: 0.5rem;">
+                                    Also Export to GCS Bucket
+                                </button>`
                                 : `<button class="btn-primary" onclick="confirmDownload()">
-                                    Download to Computer (${result.estimated_size})
+                                    Download to Computer (approx ${result.estimated_size})
+                                </button>
+                                <button class="btn-secondary" onclick="exportToGCS()" style="margin-top: 0.5rem;">
+                                    Also Export to GCS Bucket
                                 </button>`;
                         
                         document.getElementById('previewContent').innerHTML = `
                             <div class="preview-content">
                                 <h3 style="margin-bottom: 0.5rem;">
                                     ${result.dataset_name || dataset}
-                                    ${optimizedBadge}
                                 </h3>
                                 <p style="color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4;">
                                     ${result.description}
                                 </p>
                                 
-                                ${dateInfo}
                                 ${sizeWarningDisplay}
-                                ${sampleImageDisplay}
                                 
                                 <div class="info-grid">
                                     <div class="info-item">
@@ -1172,6 +1217,16 @@ def home():
                                         <strong>Images Found</strong>
                                         <span>${result.image_count}</span>
                                     </div>
+                                    ${result.revisit_interval ? `
+                                    <div class="info-item">
+                                        <strong>Revisit Interval</strong>
+                                        <span>${result.revisit_interval}</span>
+                                    </div>
+                                    ` : ''}
+                                    <div class="info-item">
+                                        <strong>Reduction Method</strong>
+                                        <span>${result.composite_method || 'N/A'}</span>
+                                    </div>
                                     <div class="info-item">
                                         <strong>Area Coverage</strong>
                                         <span>${result.area_km2} km²</span>
@@ -1181,7 +1236,7 @@ def home():
                                         <span>${result.native_resolution}</span>
                                     </div>
                                     <div class="info-item">
-                                        <strong>File Size</strong>
+                                        <strong>Approx File Size</strong>
                                         <span>${result.estimated_size}</span>
                                     </div>
                                 </div>
@@ -1194,17 +1249,7 @@ def home():
                                     ${result.bands.length > 12 ? `<div style="text-align: center; margin-top: 8px;"><button onclick="showAllBands()" style="background: #f0f0f0; border: 1px solid #ccc; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Show All ${result.bands.length} Bands</button></div>` : ''}
                                 </div>
                                 
-                                ${imageCountInfo}
-                                
-                                <div style="background: #f0f9ff; padding: 1rem; border-radius: 6px; margin: 1rem 0; border-left: 3px solid #0ea5e9;">
-                                    <strong style="font-size: 0.85rem;">📦 What You'll Download:</strong>
-                                    <ul style="margin: 0.5rem 0 0 1.25rem; font-size: 0.85rem; color: #666;">
-                                        <li><strong>Format:</strong> Multi-band GeoTIFF file</li>
-                                        <li><strong>Resolution:</strong> ${result.native_resolution} (auto-detected)</li>
-                                        <li><strong>Bands:</strong> All ${result.bands.length} bands included</li>
-                                        ${result.composite_method ? `<li><strong>Processing:</strong> ${result.composite_method} composite from ${result.image_count} images</li>` : ''}
-                                    </ul>
-                                </div>
+                                ${downloadModeSelector}
                                 
                                 ${downloadButton}
                                 
@@ -1272,20 +1317,14 @@ def home():
             // Global variable to store pending download request
             let pendingDownloadRequest = null;
 
-            function showFolderModal() {
-                document.getElementById('folderModal').classList.add('active');
-            }
-
-            function closeFolderModal() {
-                document.getElementById('folderModal').classList.remove('active');
-                pendingDownloadRequest = null;
-            }
-
             function closeProgressModal() {
                 document.getElementById('progressModal').classList.remove('active');
             }
 
-            async function confirmDownload() {
+            async function exportToGCS() {
+                const bucketName = prompt('Enter GCS bucket name:', 'gee-exports-free');
+                if (!bucketName) return;
+                
                 const dataset = document.getElementById('dataset').value;
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
@@ -1297,8 +1336,143 @@ def home():
                     start_date: startDate,
                     end_date: endDate,
                     region_type: regionType,
+                    export_format: exportFormat,
+                    export_to: 'gcs',
+                    gcs_bucket: bucketName
+                };
+                
+                // Add region data
+                if (regionType === 'country' || regionType === 'state' || regionType === 'continent') {
+                    const regionName = document.getElementById('regionName').value;
+                    if (!regionName) {
+                        alert('Please select a region');
+                        return;
+                    }
+                    requestData.region_name = regionName;
+                }
+                else if (regionType === 'geojson' || regionType === 'draw') {
+                    if (!window.customGeometry) {
+                        alert('Please upload/draw a region first');
+                        return;
+                    }
+                    requestData.region_name = 'Custom Region';
+                    requestData.custom_geometry = window.customGeometry;
+                }
+                else if (regionType === 'coordinates') {
+                    const geometry = getCoordinateGeometry();
+                    if (!geometry) {
+                        alert('Please enter valid coordinates');
+                        return;
+                    }
+                    requestData.region_name = 'Custom Region';
+                    requestData.custom_geometry = geometry;
+                }
+                
+                showLoading('Starting GCS export...');
+                
+                try {
+                    const response = await fetch('/download', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(requestData)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    document.getElementById('previewContent').innerHTML = '';
+                    
+                    if (result.success && result.export_method === 'gcs') {
+                        document.getElementById('result').innerHTML = `
+                            <div class="result">
+                                <strong>🚀 GCS Export Started</strong><br>
+                                Bucket: ${result.bucket}<br>
+                                File: ${result.filename}<br>
+                                <button onclick="checkGCSStatus('${result.task_id}')" class="btn-secondary" style="margin-top: 0.5rem;">
+                                    Check Status
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('result').innerHTML = `
+                            <div class="result error">GCS Export Error: ${result.error}</div>
+                        `;
+                    }
+                } catch (error) {
+                    document.getElementById('previewContent').innerHTML = '';
+                    document.getElementById('result').innerHTML = `
+                        <div class="result error">Network Error: ${error.message}</div>
+                    `;
+                }
+            }
+
+            async function checkGCSStatus(taskId) {
+                try {
+                    const response = await fetch('/check_task_status', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({task_id: taskId})
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        if (result.state === 'COMPLETED') {
+                            document.getElementById('result').innerHTML = `
+                                <div class="result">
+                                    <strong>✅ GCS Export Complete</strong><br>
+                                    <small>File is now in your GCS bucket</small>
+                                </div>
+                            `;
+                        } else if (result.state === 'FAILED') {
+                            document.getElementById('result').innerHTML = `
+                                <div class="result error">
+                                    <strong>❌ GCS Export Failed</strong><br>
+                                    ${result.error_message || 'Unknown error'}
+                                </div>
+                            `;
+                        } else {
+                            document.getElementById('result').innerHTML = `
+                                <div class="result">
+                                    <strong>⏳ GCS Export Running</strong><br>
+                                    Status: ${result.state}<br>
+                                    <button onclick="checkGCSStatus('${taskId}')" class="btn-secondary" style="margin-top: 0.5rem;">
+                                        Check Again
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                } catch (error) {
+                    alert('Error checking status: ' + error.message);
+                }
+            }
+
+            async function confirmDownload() {
+                const dataset = document.getElementById('dataset').value;
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const regionType = document.getElementById('regionType').value;
+                const exportFormat = document.getElementById('exportFormat').value;
+                
+                // Check download mode selection
+                const downloadMode = document.querySelector('input[name="downloadMode"]:checked');
+                const useTimeSeries = downloadMode && downloadMode.value === 'timeseries';
+                
+                let requestData = {
+                    dataset,
+                    start_date: startDate,
+                    end_date: endDate,
+                    region_type: regionType,
                     export_format: exportFormat
                 };
+                
+                // Only add revisit_days if time-series mode is selected
+                if (useTimeSeries) {
+                    const revisitDaysInput = document.getElementById('revisitDays');
+                    if (revisitDaysInput && revisitDaysInput.value) {
+                        requestData.revisit_days = parseInt(revisitDaysInput.value);
+                    }
+                }
                 
                 // Add region data
                 if (regionType === 'country' || regionType === 'state' || regionType === 'continent') {
@@ -1347,7 +1521,25 @@ def home():
                     const result = await response.json();
                     
                     if (result.success) {
-                        if (result.export_method === 'cloud_storage') {
+                        if (result.export_method === 'time_series') {
+                            // Show time-series export progress
+                            let taskList = result.tasks.map((t, i) => 
+                                `<li><strong>File ${i+1}:</strong> ${t.filename}.tif (${t.period})</li>`
+                            ).join('');
+                            
+                            document.getElementById('previewContent').innerHTML = `
+                                <div class="preview-content">
+                                    <div class="result">
+                                        <h3>🚀 Time-Series Export Started</h3>
+                                        <p><strong>${result.total_files} files</strong> are being exported to Google Drive folder: <strong>${result.drive_folder}</strong></p>
+                                        <ul style="text-align: left; margin: 1rem 0;">${taskList}</ul>
+                                        <p style="font-size: 0.85rem; color: #666; margin-top: 1rem;">
+                                            Check your Google Drive in 5-30 minutes. Each file represents one time period.
+                                        </p>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (result.export_method === 'cloud_storage') {
                             // Show cloud storage export progress
                             document.getElementById('previewContent').innerHTML = `
                                 <div class="preview-content">
@@ -1475,131 +1667,6 @@ def home():
                 } catch (error) {
                     alert('Network error: ' + error.message);
                 }
-            }
-
-            async function startDriveExport() {
-                console.log('startDriveExport called, pendingDownloadRequest:', pendingDownloadRequest);
-                
-                if (!pendingDownloadRequest) {
-                    console.error('No pending download request - rebuilding from form');
-                    // Rebuild request from form data
-                    const dataset = document.getElementById('dataset').value;
-                    const startDate = document.getElementById('startDate').value;
-                    const endDate = document.getElementById('endDate').value;
-                    const regionType = document.getElementById('regionType').value;
-                    const exportFormat = document.getElementById('exportFormat').value;
-                    
-                    pendingDownloadRequest = {
-                        dataset,
-                        start_date: startDate,
-                        end_date: endDate,
-                        region_type: regionType,
-                        export_format: exportFormat
-                    };
-                    
-                    // Add region data
-                    if (regionType === 'country' || regionType === 'state' || regionType === 'continent') {
-                        const regionName = document.getElementById('regionName').value;
-                        if (!regionName) {
-                            document.getElementById('result').innerHTML = `
-                                <div class="result error">Please select a region</div>
-                            `;
-                            return;
-                        }
-                        pendingDownloadRequest.region_name = regionName;
-                    }
-                }
-                
-                // Get folder name if modal is open
-                const folderModal = document.getElementById('folderModal');
-                if (folderModal.classList.contains('active')) {
-                    const folderName = document.getElementById('folderNameInput').value.trim();
-                    if (!folderName) {
-                        alert('Please enter a folder name');
-                        return;
-                    }
-                    pendingDownloadRequest.drive_folder = folderName;
-                    closeFolderModal();
-                }
-                
-                showLoading('Processing download...');
-                
-                try {
-                    console.log('Sending request with data:', pendingDownloadRequest);
-                    const response = await fetch('/download', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(pendingDownloadRequest)
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        if (result.export_method === 'drive') {
-                            // Show progress modal
-                            showProgressModal(result);
-                        } else {
-                            // Direct download
-                            const filename = result.filename || 'gee_download';
-                            document.getElementById('previewContent').innerHTML = `
-                                <div class="preview-content">
-                                    <div class="result">
-                                        <h3>✅ Download Ready</h3>
-                                        <p>Your ${result.format} file is ready for download.</p>
-                                        <a href="${result.download_url}" download="${filename}" 
-                                        style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; 
-                                                background: #1a1a1a; color: white; text-decoration: none; 
-                                                border-radius: 6px; font-weight: 500;">
-                                            📥 Download ${result.format}
-                                        </a>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    } else {
-                        // Enhanced error handling
-                        let errorHtml = `
-                            <div class="preview-content">
-                                <div class="result error">
-                                    <strong>Download Error:</strong><br>
-                                    ${result.error || 'Unknown error occurred'}
-                        `;
-                        
-                        // If it should retry with Drive, show option
-                        if (result.should_retry_with_drive) {
-                            errorHtml += `
-                                    <div style="margin-top: 1rem; padding: 1rem; background: #fff3cd; border-radius: 6px; border-left: 3px solid #ffc107;">
-                                        <strong>💡 Solution:</strong> This file requires Google Drive export.<br>
-                                        <button class="btn-primary" onclick="forceDriverExport()" style="margin-top: 0.75rem;">
-                                            Export to Google Drive Instead
-                                        </button>
-                                    </div>
-                            `;
-                        }
-                        
-                        errorHtml += `
-                                </div>
-                            </div>
-                        `;
-                        
-                        document.getElementById('previewContent').innerHTML = errorHtml;
-                    }
-                } catch (error) {
-                    document.getElementById('previewContent').innerHTML = `
-                        <div class="preview-content">
-                            <div class="result error">
-                                <strong>Network Error:</strong><br>
-                                ${error.message}
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-
-            // Add this new function to force Drive export
-            function forceDriverExport() {
-                // Force Drive export by showing folder modal
-                showFolderModal();
             }
 
             function showProgressModal(exportResult) {
@@ -1954,36 +2021,48 @@ async def preview_download(request: dict):
         # Get comprehensive dataset information
         detected_info = handler.detect_dataset_type(dataset_id)
         
-        # Calculate area and file size with proper validation
+        # Calculate area and file size with compression factor
         area_km2 = region.area().divide(1000000).getInfo()
         scale = config['scale']
         pixels_per_km2 = 1000000 / (scale * scale)
         estimated_pixels = area_km2 * pixels_per_km2 * len(config['bands'])
-        estimated_mb = (estimated_pixels * 4) / (1024 * 1024)
+        
+        # Account for GeoTIFF LZW compression (typically 3-5x compression)
+        # Use conservative 3x compression factor for estimation
+        uncompressed_mb = (estimated_pixels * 4) / (1024 * 1024)
+        estimated_mb = uncompressed_mb / 3  # Apply compression factor
         
         # Size validation and warnings
         size_warning = None
         size_str = f"{estimated_mb:.1f} MB"
+        
+        # Use lower threshold (5MB) to be more conservative
+        # This accounts for compression variability
 
         if estimated_mb > 1024:
             size_str = f"{estimated_mb/1024:.1f} GB"
             
-        # Changed thresholds to match GEE's actual limits
-        if estimated_mb > 10:  # Changed from 32
+        # Use 5MB threshold instead of 10MB to be more conservative
+        # Accounts for compression variability (actual size may be 2-5x estimated)
+        if estimated_mb > 5:  # Changed from 10
             size_warning = {
                 "type": "size_limit",
-                "message": f"File size ({size_str}) requires Google Drive export",
+                "message": f"File size (~{size_str}, may vary) requires Google Drive export",
                 "suggestions": [
                     "File will be exported to Google Drive automatically",
-                    "Choose a folder name when prompted",
-                    "Check your Drive after 5-30 minutes"
+                    "Actual size depends on data compression",
+                    "Check your Drive after 5-30 minutes",
+                    "💡 Tip: Use 'City' region for faster Sentinel-2 exports (2-5 min vs 30-60 min)"
                 ]
             }
-        elif estimated_mb > 5:  # Warning for medium files
+        elif estimated_mb > 3:  # Warning for medium files
             size_warning = {
                 "type": "size_caution", 
-                "message": f"Medium file size ({size_str}) - direct download may be slow",
-                "suggestions": ["Download should complete in a few minutes"]
+                "message": f"Medium file size (~{size_str}) - actual size may vary",
+                "suggestions": [
+                    "Download should complete in a few minutes",
+                    "💡 Tip: Use 'City' region for faster exports"
+                ]
             }
 
         # Generate sample visualization
@@ -2013,7 +2092,7 @@ async def preview_download(request: dict):
             "bands": config['bands'],
             "band_details": detected_info.get('band_details', []),
             "native_resolution": f"{config['scale']}m",
-            "export_resolution": f"{config['scale']}m",  # Same as native since no user override
+            "export_resolution": f"{config['scale']}m",
             "estimated_size": size_str,
             "estimated_mb": estimated_mb,
             "size_warning": size_warning,
@@ -2025,6 +2104,25 @@ async def preview_download(request: dict):
             "sample_image_url": sample_image_url,
             "dataset_type_info": detected_info.get('dataset_type_info', config['type'])
         }
+        
+        # Get revisit interval for ImageCollections
+        if config['type'] == 'ImageCollection' and config['requires_date']:
+            try:
+                print(f"Getting revisit interval for {dataset_id}")
+                revisit_info = handler.get_revisit_interval(dataset_id)
+                print(f"Revisit info: {revisit_info}")
+                if revisit_info['interval_days']:
+                    response_data['revisit_interval'] = f"{revisit_info['interval_days']} days"
+                    response_data['revisit_days'] = revisit_info['interval_days']
+                    print(f"Set revisit_days to {revisit_info['interval_days']}")
+                elif revisit_info['interval_hours']:
+                    response_data['revisit_interval'] = f"{revisit_info['interval_hours']} hours"
+                    response_data['revisit_hours'] = revisit_info['interval_hours']
+                    print(f"Set revisit_hours to {revisit_info['interval_hours']}")
+                else:
+                    print("No revisit interval found")
+            except Exception as e:
+                print(f"Error getting revisit interval: {e}")
         
         return response_data
         
@@ -2076,6 +2174,77 @@ async def visualize_data(request: dict):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+async def download_time_series(body, dataset_id, config, region, scale, drive_folder):
+    """Download multiple files for each revisit period"""
+    from datetime import datetime, timedelta
+    
+    start_date = body.get('start_date')
+    end_date = body.get('end_date')
+    revisit_days = int(body.get('revisit_days'))
+    
+    if not start_date or not end_date:
+        return {"success": False, "error": "Start and end dates required for time-series"}
+    
+    start = datetime.strptime(start_date, '%Y-%m-%d')
+    end = datetime.strptime(end_date, '%Y-%m-%d')
+    
+    # Split into periods
+    periods = []
+    current = start
+    while current < end:
+        period_end = min(current + timedelta(days=revisit_days), end)
+        periods.append((current.strftime('%Y-%m-%d'), period_end.strftime('%Y-%m-%d')))
+        current = period_end
+    
+    # Start exports for each period
+    tasks = []
+    for i, (p_start, p_end) in enumerate(periods):
+        collection = ee.ImageCollection(dataset_id).filterDate(p_start, p_end).filterBounds(region)
+        
+        if config.get('cloud_filter'):
+            try:
+                collection = config['cloud_filter'](collection)
+            except:
+                pass
+        
+        if config.get('preprocessing'):
+            try:
+                collection = collection.map(config['preprocessing'])
+            except:
+                pass
+        
+        image = collection.median()
+        region_collection = ee.FeatureCollection([ee.Feature(region)])
+        exact_clipped = image.clipToCollection(region_collection)
+        
+        dataset_simple = dataset_id.split('/')[-1]
+        region_simple = str(body.get('region_name', 'region')).replace(' ', '_')[:15]
+        filename = f"{dataset_simple}_{region_simple}_period{i+1}_{p_start}"
+        
+        task = ee.batch.Export.image.toDrive(
+            image=exact_clipped,
+            description=filename[:100],
+            folder=drive_folder,
+            fileNamePrefix=filename,
+            scale=scale,
+            region=region,
+            maxPixels=1e13,
+            fileFormat='GeoTIFF',
+            formatOptions={'cloudOptimized': True, 'noData': -9999},
+            shardSize=256
+        )
+        task.start()
+        tasks.append({"task_id": task.id, "filename": filename, "period": f"{p_start} to {p_end}"})
+    
+    return {
+        "success": True,
+        "export_method": "time_series",
+        "total_files": len(tasks),
+        "tasks": tasks,
+        "drive_folder": drive_folder,
+        "message": f"Started {len(tasks)} exports (one per {revisit_days}-day period)"
+    }
+
 @app.post("/download")
 async def download(request: Request):
     try:
@@ -2107,7 +2276,7 @@ async def download(request: Request):
         dataset_id = body['dataset']
         config = handler.get_config(dataset_id)
         export_format = body.get('export_format', 'GeoTIFF')
-        drive_folder = body.get('drive_folder', 'EarthEngineExports')  # Custom folder name
+        drive_folder = body.get('drive_folder', 'EarthEngineExports')
         
         scale = config['scale']
         
@@ -2122,12 +2291,10 @@ async def download(request: Request):
         region_type = body.get('region_type')
         
         if region_type in ['geojson', 'coordinates', 'draw']:
-            # Custom geometry from frontend
             region_data = body.get('custom_geometry')
             if not region_data:
                 return {"success": False, "error": "Custom geometry required"}
         else:
-            # Predefined region
             region_data = body.get('region_name')
             if not region_data:
                 return {"success": False, "error": "Region name required"}
@@ -2136,7 +2303,12 @@ async def download(request: Request):
         if not region:
             return {"success": False, "error": "Region not found"}
         
-        # Process dataset
+        # Check for time-series download
+        revisit_days = body.get('revisit_days')
+        if revisit_days and config['type'] == 'ImageCollection':
+            return await download_time_series(body, dataset_id, config, region, scale, drive_folder)
+        
+        # Process dataset (single composite)
         image, count = handler.process_dataset(
             dataset_id=dataset_id,
             start_date=body.get('start_date'),
@@ -2163,20 +2335,60 @@ async def download(request: Request):
         area_km2 = region.area().divide(1000000).getInfo()
         pixels_per_km2 = 1000000 / (scale * scale)
         total_pixels = area_km2 * pixels_per_km2
-        estimated_mb = (total_pixels * len(config['bands']) * 4) / (1024 * 1024)
+        uncompressed_mb = (total_pixels * len(config['bands']) * 4) / (1024 * 1024)
+        estimated_mb = uncompressed_mb / 3  # Apply 3x compression factor for GeoTIFF
         
         # IMPORTANT: GEE has TWO limits:
         # 1. Direct download: ~32MB file size limit via getDownloadURL()
         # 2. Request payload: 50MB limit for the entire HTTP request
-        # Use Google Drive for large files (FREE with OAuth), direct download for small files
+        # Use 5MB threshold to be conservative (actual size may be 2-5x estimated)
         
-        if estimated_mb > 10 and export_format == 'GeoTIFF':
-            # LARGE FILE: Exact clip using GEE processing (fast + exact)
+        export_to = body.get('export_to', 'auto')
+        
+        # Handle GCS export (available for any file size)
+        if export_to == 'gcs':
+            bucket_name = body.get('gcs_bucket', 'gee-exports-free')
+            
             try:
-                if not drive_folder or drive_folder.strip() == '':
-                    drive_folder = 'EarthEngineExports'
+                region_collection = ee.FeatureCollection([ee.Feature(region)])
+                exact_clipped_image = image.clipToCollection(region_collection)
                 
-                # Apply exact clipping using GEE's clipToCollection for precision
+                task = ee.batch.Export.image.toCloudStorage(
+                    image=exact_clipped_image,
+                    description=filename[:100],
+                    bucket=bucket_name,
+                    fileNamePrefix=filename + '_exact',
+                    scale=scale,
+                    region=region,
+                    maxPixels=1e13,
+                    fileFormat='GeoTIFF',
+                    formatOptions={
+                        'cloudOptimized': True,
+                        'noData': -9999
+                    },
+                    shardSize=256  # Prevent tiling by using large shard size
+                )
+                task.start()
+                
+                return {
+                    "success": True,
+                    "export_method": "gcs",
+                    "task_id": task.id,
+                    "filename": filename + '_exact.tif',
+                    "bucket": bucket_name,
+                    "message": f"Export started to GCS bucket '{bucket_name}'",
+                    "estimated_size": f"~{estimated_mb:.1f}MB",
+                    "exact_clip": True
+                }
+            except Exception as e:
+                return {"success": False, "error": f"GCS export failed: {str(e)}"}
+        
+        # Auto-routing based on file size (use 5MB threshold)
+        if estimated_mb > 5 and export_format == 'GeoTIFF':
+            # LARGE FILE: Export to Drive
+            drive_folder = body.get('drive_folder', 'EarthEngineExports')
+            
+            try:
                 region_collection = ee.FeatureCollection([ee.Feature(region)])
                 exact_clipped_image = image.clipToCollection(region_collection)
                 
@@ -2188,7 +2400,12 @@ async def download(request: Request):
                     scale=scale,
                     region=region,
                     maxPixels=1e13,
-                    fileFormat='GeoTIFF'
+                    fileFormat='GeoTIFF',
+                    formatOptions={
+                        'cloudOptimized': True,
+                        'noData': -9999
+                    },
+                    shardSize=256  # Prevent tiling by using large shard size
                 )
                 task.start()
                 
@@ -2198,13 +2415,13 @@ async def download(request: Request):
                     "task_id": task.id,
                     "filename": filename + '_exact.tif',
                     "folder": drive_folder,
-                    "message": f"Large file ({estimated_mb:.1f}MB) - Exact clip export started to Google Drive '{drive_folder}'. Check in 5-30 minutes.",
-                    "estimated_size": f"{estimated_mb:.1f}MB",
+                    "message": f"Large file (~{estimated_mb:.1f}MB) - Export started to Google Drive '{drive_folder}'",
+                    "estimated_size": f"~{estimated_mb:.1f}MB",
                     "exact_clip": True
                 }
                 
-            except Exception as drive_error:
-                error_msg = str(drive_error)
+            except Exception as export_error:
+                error_msg = str(export_error)
                 if "Service accounts do not have storage quota" in error_msg:
                     return {
                         "success": False,
@@ -2214,7 +2431,7 @@ async def download(request: Request):
                     }
                 return {
                     "success": False,
-                    "error": f"Drive export failed: {error_msg}",
+                    "error": f"Export failed: {error_msg}",
                     "estimated_size": f"{estimated_mb:.1f}MB"
                 }
         
