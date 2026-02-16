@@ -292,24 +292,6 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 
 ---
 
-## Generate Your Own Visualizations
-
-Run the visualization script:
-```bash
-cd /home/varshapednekar/projects/gee-data-pipeline
-source venv/bin/activate
-python3 generate_visualizations.py
-```
-
-This generates:
-1. `cost_comparison_pie.png` - Pie charts comparing costs
-2. `storage_cost_bars.png` - Storage costs by composite method
-3. `dataset_comparison.png` - Costs across different datasets
-4. `5year_tco.png` - 5-year total cost of ownership
-5. `savings_multiplier.png` - Savings multiplier comparison
-
----
-
 ## Full Documentation
 
 - **Detailed Analysis**: See `COMPREHENSIVE_COST_ANALYSIS.md`
