@@ -200,24 +200,6 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 
 | Dataset | Duration | Files | Size | Cost/Year |
 |---------|----------|-------|------|-----------|
-| Sentinel-2 | 10 years | 11 | 1.1 GB | $0 |
-| Landsat 8/9 | 10 years | 11 | 800 MB | $0 |
-| Landsat 7 | 20 years | 21 | 1.5 GB | $0 |
-| Landsat 4-5 | 30 years | 31 | 2.2 GB | $0 |
-| MODIS | 24 years | 25 | 500 MB | $0 |
-| Sentinel-1 | 10 years | 11 | 2 GB | $0 |
-| CHIRPS | 43 years | 44 | 1.8 GB | $0 |
-| ERA5 | 74 years | 75 | 3.5 GB | $0 |
-| Land Cover | 5 years | 6 | 300 MB | $0 |
-| DEM | One-time | 1 | 50 MB | $0 |
-| **TOTAL** | **-** | **236** | **13.8 GB** | **$0** |
-
-**vs GEE Commercial**: $6,000-$24,000/year → **Infinite savings**
-
-#### Annual Composites (RECOMMENDED - Lowest Cost)
-
-| Dataset | Duration | Files | Size | Cost/Year |
-|---------|----------|-------|------|-----------|
 | Sentinel-2 | 10 years | 11 | 33 GB | $7 |
 | Landsat 8/9 | 10 years | 11 | 25 GB | $5 |
 | Landsat 7 | 20 years | 21 | 45 GB | $10 |
@@ -289,24 +271,6 @@ This pipeline provides access to **142+ Google Earth Engine datasets** with **ma
 ---
 
 ### India - All 10 Major Datasets
-
-#### Annual Composites (RECOMMENDED - Lowest Cost)
-
-| Dataset | Duration | Files | Size | Cost/Year |
-|---------|----------|-------|------|-----------|
-| Sentinel-2 | 10 years | 11 | 33 GB | $7 |
-| Landsat 8/9 | 10 years | 11 | 25 GB | $5 |
-| Landsat 7 | 20 years | 21 | 45 GB | $10 |
-| Landsat 4-5 | 30 years | 31 | 65 GB | $14 |
-| MODIS | 24 years | 25 | 12 GB | $2 |
-| Sentinel-1 | 10 years | 11 | 40 GB | $8 |
-| CHIRPS | 43 years | 44 | 20 GB | $4 |
-| ERA5 | 74 years | 75 | 35 GB | $7 |
-| Land Cover | 5 years | 6 | 8 GB | $1 |
-| DEM | One-time | 1 | 500 MB | $0 |
-| **TOTAL** | **-** | **236** | **283 GB** | **$58** |
-
-**vs GEE Commercial**: $6,000-$24,000/year → **103-414x savings**
 
 #### Annual Composites (RECOMMENDED - Lowest Cost)
 
