@@ -414,7 +414,6 @@
                 <label for="exportFormat">Export Format</label>
                 <select id="exportFormat">
                     <option value="GeoTIFF">GeoTIFF (Raster)</option>
-                    <option value="CSV">CSV (100 samples)</option>
                 </select>
             </div>
 
@@ -636,7 +635,7 @@
             };
 
             // Add region-specific data
-            if (regionType === 'country' || regionType === 'state' || regionType === 'continent') {
+            if (regionType === 'country' || regionType === 'state' || regionType === 'continent' || regionType === 'city') {
                 const regionName = document.getElementById('regionName').value;
                 if (!regionName) {
                     document.getElementById('result').innerHTML = `
@@ -854,11 +853,11 @@
 
                     // Provide helpful suggestions based on error type
                     if (errorMsg.includes('Empty date range') || errorMsg.includes('date')) {
-                        suggestion = '<p style="margin-top: 0.5rem;">💡 <strong>Try:</strong> Make sure start date is before end date, or leave dates empty for static datasets.</p>';
+                        suggestion = '<p style="margin-top: 0.5rem;"><strong>Try:</strong> Make sure start date is before end date, or leave dates empty for static datasets.</p>';
                     } else if (errorMsg.includes('No images found')) {
-                        suggestion = '<p style="margin-top: 0.5rem;">💡 <strong>Try:</strong> Different date range, different region, or check if dataset ID is correct.</p>';
+                        suggestion = '<p style="margin-top: 0.5rem;"><strong>Try:</strong> Different date range, different region, or check if dataset ID is correct.</p>';
                     } else if (errorMsg.includes('Cannot access dataset')) {
-                        suggestion = '<p style="margin-top: 0.5rem;">💡 <strong>Try:</strong> Verify the dataset ID is correct. Check <a href="https://developers.google.com/earth-engine/datasets" target="_blank">GEE Catalog</a>.</p>';
+                        suggestion = '<p style="margin-top: 0.5rem;"><strong>Try:</strong> Verify the dataset ID is correct. Check <a href="https://developers.google.com/earth-engine/datasets" target="_blank">GEE Catalog</a>.</p>';
                     }
 
                     document.getElementById('previewContent').innerHTML = `
@@ -923,7 +922,7 @@
             };
 
             // Add region data
-            if (regionType === 'country' || regionType === 'state' || regionType === 'continent') {
+            if (regionType === 'country' || regionType === 'state' || regionType === 'continent' || regionType === 'city') {
                 const regionName = document.getElementById('regionName').value;
                 if (!regionName) {
                     alert('Please select a region');
@@ -1025,7 +1024,7 @@
                     } else {
                         document.getElementById('result').innerHTML = `
                                 <div class="result">
-                                    <strong>⏳ GCS Export Running</strong><br>
+                                    <strong>GCS Export Running</strong><br>
                                     Status: ${result.state}<br>
                                     <button onclick="checkGCSStatus('${taskId}')" class="btn-secondary" style="margin-top: 0.5rem;">
                                         Check Again
@@ -1067,7 +1066,7 @@
             }
 
             // Add region data
-            if (regionType === 'country' || regionType === 'state' || regionType === 'continent') {
+            if (regionType === 'country' || regionType === 'state' || regionType === 'continent' || regionType === 'city') {
                 const regionName = document.getElementById('regionName').value;
                 if (!regionName) {
                     document.getElementById('result').innerHTML = `
@@ -1122,7 +1121,7 @@
                         document.getElementById('previewContent').innerHTML = `
                                 <div class="preview-content">
                                     <div class="result">
-                                        <h3>🚀 Time-Series Export Started</h3>
+                                        <h3>Time-Series Export Started</h3>
                                         <p><strong>${result.total_files} files</strong> are being exported to Google Drive folder: <strong>${result.drive_folder}</strong></p>
                                         <ul style="text-align: left; margin: 1rem 0;">${taskList}</ul>
                                         <p style="font-size: 0.85rem; color: #666; margin-top: 1rem;">
@@ -1136,7 +1135,7 @@
                         document.getElementById('previewContent').innerHTML = `
                                 <div class="preview-content">
                                     <div class="result">
-                                        <h3>🚀 Export Started</h3>
+                                        <h3>Export Started</h3>
                                         <p>Large file (${result.estimated_size}) is being processed in Google Cloud Storage.</p>
                                         <p><strong>Export ID:</strong> ${result.export_id}</p>
                                         <p><strong>Estimated time:</strong> 5-30 minutes</p>
@@ -1182,7 +1181,7 @@
                                             <a href="${result.download_url}" download="${filename}" 
                                             style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; 
                                                     background: #1a1a1a; color: white; text-decoration: none; 
-                                                    border-radius: 4px;">📥 Download File</a>
+                                                    border-radius: 4px;">Download File</a>
                                         </div>
                                     </div>
                                 `;
@@ -1242,7 +1241,7 @@
                         document.getElementById('previewContent').innerHTML = `
                                 <div class="preview-content">
                                     <div class="result">
-                                        <h3>⏳ Processing...</h3>
+                                        <h3>Processing...</h3>
                                         <p>Status: ${result.status}</p>
                                         <p>Export is still running. Please wait...</p>
                                         <div style="margin-top: 1rem;">
