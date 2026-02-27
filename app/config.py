@@ -1,5 +1,10 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # All constants in one place. Change here = changes everywhere.
-GEE_PROJECT_ID = "plucky-sight-423703-k5"
+GEE_PROJECT_ID = os.getenv("GEE_PROJECT_ID", "plucky-sight-423703-k5")
 
 SMALL_FILE_THRESHOLD_MB = 5.0   # below → direct download
 MEDIUM_FILE_WARNING_MB  = 3.0   # below small → caution warning
