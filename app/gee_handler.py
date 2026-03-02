@@ -146,6 +146,12 @@ class UniversalGEEHandler:
             except Exception as e2:
                 raise ValueError(f"Cannot access dataset {dataset_id}. ImageCollection error: {str(e1)[:100]}. Image error: {str(e2)[:100]}")
     
+    def normalize_image(self, image: ee.Image, dataset_id: str) -> ee.Image:
+        """Normalize pixel values for proper visualization"""
+        if 'COPERNICUS/S2' in dataset_id or 'SENTINEL' in dataset_id.upper():
+            return image.divide(10000)
+        return image
+    
     def get_smart_composite_method(self, dataset_id: str, bands: List[str]) -> str:
         """Choose appropriate composite method based on dataset type"""
         
@@ -165,9 +171,9 @@ class UniversalGEEHandler:
         if any(vi in dataset_id.upper() for vi in ['NDVI', 'EVI', 'MOD13', 'MYD13']):
             return 'median'
         
-        # Optical imagery (Landsat, Sentinel) - use median to remove clouds
+        # Optical imagery (Landsat, Sentinel) - use mosaic for full coverage
         if any(optical in dataset_id.upper() for optical in ['LANDSAT', 'SENTINEL', 'COPERNICUS/S2']):
-            return 'median'
+            return 'mosaic'
         
         # Default: median (safest for most datasets)
         return 'median'
@@ -288,6 +294,10 @@ class UniversalGEEHandler:
             if region:
                 collection = collection.filterBounds(region)
             
+            # Cloud filtering for Sentinel-2
+            if 'COPERNICUS/S2' in dataset_id or 'SENTINEL' in dataset_id.upper():
+                collection = collection.filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+            
             # Cloud filtering (if curated config has it)
             if config.get('cloud_filter'):
                 try:
@@ -325,6 +335,8 @@ class UniversalGEEHandler:
                 image = collection.sum()
             elif method == 'mode':
                 image = collection.mode()
+            elif method == 'mosaic':
+                image = collection.mosaic()
             elif method == 'first':
                 image = collection.first()
             else:
@@ -332,6 +344,9 @@ class UniversalGEEHandler:
             
             if region:
                 image = image.clip(region)
+            
+            # Normalize for proper visualization
+            image = self.normalize_image(image, dataset_id)
             
             return image, count
         
