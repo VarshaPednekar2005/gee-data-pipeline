@@ -19,6 +19,8 @@ class UniversalGEEHandler:
         'MODIS/006/MYD': 1,  # MODIS Aqua (daily)
         'MODIS/061/MOD': 1,  # MODIS Terra (daily)
         'MODIS/061/MYD': 1,  # MODIS Aqua (daily)
+        'COPERNICUS/S5P': 2,
+        'FIRMS': 1,  # Fire Information for Resource Management System (daily)
     }
     
     def get_revisit_interval(self, dataset_id: str) -> Dict:
@@ -169,6 +171,46 @@ class UniversalGEEHandler:
         
         # Default: median (safest for most datasets)
         return 'median'
+    def get_actual_dates(self, dataset_id: str, start_date: str, end_date: str, region: Optional[ee.Geometry] = None) -> Dict:
+        """Get actual acquisition dates available in the collection"""
+        try:
+            collection = ee.ImageCollection(dataset_id).filterDate(start_date, end_date)
+            if region:
+                collection = collection.filterBounds(region)
+            dates = collection.aggregate_array('system:time_start').getInfo()
+            from datetime import datetime
+            date_strs = [datetime.fromtimestamp(d/1000).strftime('%Y-%m-%d') for d in dates]
+            unique_dates = sorted(list(set(date_strs)))
+            return {"dates": unique_dates, "total_images": len(date_strs), "unique_dates": len(unique_dates)}
+        except:
+            return {"dates": [], "total_images": 0, "unique_dates": 0}
+    
+    def get_daily_image_counts(self, dataset_id: str, start_date: str, end_date: str, region: Optional[ee.Geometry] = None) -> Dict:
+        """Get image count for each day in the date range"""
+        from datetime import datetime, timedelta
+        try:
+            # Add 1 day to end_date to make it inclusive (GEE filterDate is exclusive)
+            end_inclusive = (datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+            collection = ee.ImageCollection(dataset_id).filterDate(start_date, end_inclusive)
+            if region:
+                collection = collection.filterBounds(region)
+            
+            daily_counts = {}
+            current = datetime.strptime(start_date, '%Y-%m-%d')
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+            
+            while current <= end_dt:
+                date_str = current.strftime('%Y-%m-%d')
+                next_day = (current + timedelta(days=1)).strftime('%Y-%m-%d')
+                day_collection = collection.filterDate(date_str, next_day)
+                count = day_collection.size().getInfo()
+                daily_counts[date_str] = count
+                current += timedelta(days=1)
+            
+            return daily_counts
+        except:
+            return {}
+    
     def get_config(self, dataset_id: str, user_overrides: Optional[Dict] = None) -> Dict:
         """
         Get configuration using AUTO-DETECTION only

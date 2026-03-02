@@ -748,8 +748,8 @@
                                     <label style="cursor: pointer;">
                                         <input type="radio" name="downloadMode" value="timeseries" style="display:none;">
                                         <div class="mode-card" id="card-timeseries" style="padding: 1rem; border: 2px solid #d1d5db; border-radius: 6px; background: white;">
-                                            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">Time-Series</div>
-                                            <div style="font-size: 0.78rem; color: #666;">${numPeriods} files, one per ${result.revisit_interval}</div>
+                                            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">Individual Dates</div>
+                                            <div style="font-size: 0.78rem; color: #666;">One file per day (skips dates with no data)</div>
                                         </div>
                                     </label>
 
@@ -795,12 +795,25 @@
                                     </div>
                                     <div class="info-item">
                                         <strong>Images Found</strong>
-                                        <span>${result.image_count}</span>
+                                        <span>${result.image_count}${result.total_image_count ? ` (${result.unique_date_count} unique dates)` : ''}</span>
                                     </div>
                                     ${result.revisit_interval ? `
                                     <div class="info-item">
                                         <strong>Revisit Interval</strong>
                                         <span>${result.revisit_interval}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${result.daily_breakdown && Object.keys(result.daily_breakdown).length > 0 ? `
+                                    <div class="info-item" style="grid-column: 1 / -1;">
+                                        <strong>Daily Image Counts (for Individual File Download)</strong>
+                                        <div style="margin-top: 0.5rem; font-size: 0.85rem; line-height: 1.6;">
+                                            ${Object.entries(result.daily_breakdown).map(([date, count]) => 
+                                                `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                                                    <span>${date}:</span>
+                                                    <span style="font-weight: 600; color: ${count > 0 ? '#28a745' : '#dc3545'};">${count} image${count !== 1 ? 's' : ''}</span>
+                                                </div>`
+                                            ).join('')}
+                                        </div>
                                     </div>
                                     ` : ''}
                                     <div class="info-item">
@@ -1112,20 +1125,25 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    if (result.export_method === 'time_series') {
-                        // Show time-series export progress
+                    if (result.export_method === 'time_series' || result.export_method === 'individual_dates') {
+                        // Show time-series/individual dates export progress
                         let taskList = result.tasks.map((t, i) =>
-                            `<li><strong>File ${i + 1}:</strong> ${t.filename}.tif (${t.period})</li>`
+                            `<li><strong>File ${i + 1}:</strong> ${t.filename}.tif${t.date ? ` (${t.date})` : ''}</li>`
                         ).join('');
+                        
+                        let skippedMsg = result.skipped_dates && result.skipped_dates.length > 0 
+                            ? `<p style="font-size: 0.85rem; color: #f59e0b;">⚠️ Skipped ${result.skipped_dates.length} date(s) with no data: ${result.skipped_dates.join(', ')}</p>`
+                            : '';
 
                         document.getElementById('previewContent').innerHTML = `
                                 <div class="preview-content">
                                     <div class="result">
-                                        <h3>Time-Series Export Started</h3>
+                                        <h3>Individual Dates Export Started</h3>
                                         <p><strong>${result.total_files} files</strong> are being exported to Google Drive folder: <strong>${result.drive_folder}</strong></p>
+                                        ${skippedMsg}
                                         <ul style="text-align: left; margin: 1rem 0;">${taskList}</ul>
                                         <p style="font-size: 0.85rem; color: #666; margin-top: 1rem;">
-                                            Check your Google Drive in 5-30 minutes. Each file represents one time period.
+                                            Check your Google Drive in 5-30 minutes. Each file represents one date.
                                         </p>
                                     </div>
                                 </div>

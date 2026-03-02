@@ -122,7 +122,7 @@ async def preview_download(request: dict):
             "dataset_type_info": detected_info.get('dataset_type_info', config['type'])
         }
         
-        # Get revisit interval for ImageCollections
+        # Get revisit interval and actual dates for ImageCollections
         if config['type'] == 'ImageCollection' and config['requires_date']:
             try:
                 print(f"Getting revisit interval for {dataset_id}")
@@ -138,6 +138,19 @@ async def preview_download(request: dict):
                     print(f"Set revisit_hours to {revisit_info['interval_hours']}")
                 else:
                     print("No revisit interval found")
+                
+                # Get actual acquisition dates
+                if request.get('start_date') and request.get('end_date'):
+                    date_info = handler.get_actual_dates(dataset_id, request['start_date'], request['end_date'], region)
+                    if date_info['dates']:
+                        response_data['actual_dates'] = date_info['dates']
+                        response_data['unique_date_count'] = date_info['unique_dates']
+                        response_data['total_image_count'] = date_info['total_images']
+                    
+                    # Get per-day image counts for individual file downloads
+                    response_data['daily_breakdown'] = handler.get_daily_image_counts(
+                        dataset_id, request['start_date'], request['end_date'], region
+                    )
             except Exception as e:
                 print(f"Error getting revisit interval: {e}")
         

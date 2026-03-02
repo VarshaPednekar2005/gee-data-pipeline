@@ -15,12 +15,11 @@ import rasterio
 router = APIRouter()
 
 async def download_time_series(body, dataset_id, config, region, scale, drive_folder):
-    """Download multiple files for each revisit period"""
+    """Download individual files for each date in range"""
     from datetime import datetime, timedelta
     
     start_date = body.get('start_date')
     end_date = body.get('end_date')
-    revisit_days = int(body.get('revisit_days'))
     
     if not start_date or not end_date:
         return {"success": False, "error": "Start and end dates required for time-series"}
@@ -28,38 +27,54 @@ async def download_time_series(body, dataset_id, config, region, scale, drive_fo
     start = datetime.strptime(start_date, '%Y-%m-%d')
     end = datetime.strptime(end_date, '%Y-%m-%d')
     
-    # Split into periods
-    periods = []
+    # Generate all dates in range
+    all_dates = []
     current = start
-    while current < end:
-        period_end = min(current + timedelta(days=revisit_days), end)
-        periods.append((current.strftime('%Y-%m-%d'), period_end.strftime('%Y-%m-%d')))
-        current = period_end
+    while current <= end:
+        all_dates.append(current.strftime('%Y-%m-%d'))
+        current += timedelta(days=1)
     
-    # Start exports for each period
+    # Get collection - add 1 day to end_date to make it inclusive (GEE filterDate is exclusive)
+    end_date_inclusive = (end + timedelta(days=1)).strftime('%Y-%m-%d')
+    collection = ee.ImageCollection(dataset_id).filterDate(start_date, end_date_inclusive).filterBounds(region)
+    
+    if config.get('cloud_filter'):
+        try:
+            collection = config['cloud_filter'](collection)
+        except:
+            pass
+    
+    if config.get('preprocessing'):
+        try:
+            collection = collection.map(config['preprocessing'])
+        except:
+            pass
+    
+    # Export one file per date
     tasks = []
-    for i, (p_start, p_end) in enumerate(periods):
-        collection = ee.ImageCollection(dataset_id).filterDate(p_start, p_end).filterBounds(region)
+    skipped = []
+    for date_str in all_dates:
+        next_day = (datetime.strptime(date_str, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+        day_collection = collection.filterDate(date_str, next_day)
         
-        if config.get('cloud_filter'):
-            try:
-                collection = config['cloud_filter'](collection)
-            except:
-                pass
+        # Check if data exists for this date
+        count = day_collection.size().getInfo()
+        if count == 0:
+            skipped.append(date_str)
+            continue
         
-        if config.get('preprocessing'):
-            try:
-                collection = collection.map(config['preprocessing'])
-            except:
-                pass
+        # Composite if multiple images
+        image = day_collection.median() if count > 1 else day_collection.first()
         
-        image = collection.median()
+        # Convert all bands to Float32 to avoid type conflicts
+        image = image.toFloat()
+        
         region_collection = ee.FeatureCollection([ee.Feature(region)])
         exact_clipped = image.clipToCollection(region_collection)
         
         dataset_simple = dataset_id.split('/')[-1]
         region_simple = str(body.get('region_name', 'region')).replace(' ', '_')[:15]
-        filename = f"{dataset_simple}_{region_simple}_period{i+1}_{p_start}"
+        filename = f"{dataset_simple}_{region_simple}_{date_str}"
         
         task = ee.batch.Export.image.toDrive(
             image=exact_clipped,
@@ -74,15 +89,20 @@ async def download_time_series(body, dataset_id, config, region, scale, drive_fo
             shardSize=256
         )
         task.start()
-        tasks.append({"task_id": task.id, "filename": filename, "period": f"{p_start} to {p_end}"})
+        tasks.append({"task_id": task.id, "filename": filename, "date": date_str})
+    
+    message = f"Started {len(tasks)} exports"
+    if skipped:
+        message += f" (skipped {len(skipped)} dates with no data: {', '.join(skipped)})"
     
     return {
         "success": True,
-        "export_method": "time_series",
+        "export_method": "individual_dates",
         "total_files": len(tasks),
+        "skipped_dates": skipped,
         "tasks": tasks,
         "drive_folder": drive_folder,
-        "message": f"Started {len(tasks)} exports (one per {revisit_days}-day period)"
+        "message": message
     }
 
 @router.post("/download")
