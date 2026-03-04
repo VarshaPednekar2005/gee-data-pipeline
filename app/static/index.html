@@ -541,8 +541,8 @@
                     // Extract geometry from different GeoJSON structures
                     let geometry;
                     if (geoJson.type === 'FeatureCollection') {
-                        // Get geometry from first feature
-                        geometry = geoJson.features[0].geometry;
+                        // Send the entire FeatureCollection to backend
+                        geometry = geoJson;
                     } else if (geoJson.type === 'Feature') {
                         // Get geometry from feature
                         geometry = geoJson.geometry;

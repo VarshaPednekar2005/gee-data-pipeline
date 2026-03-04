@@ -83,12 +83,25 @@ def get_region_geometry(region_type, region_data):
         elif region_type in ["geojson", "coordinates", "draw"]:
             # Handle custom GeoJSON geometry
             if isinstance(region_data, dict):
-                # region_data is a GeoJSON geometry object
-                return ee.Geometry(region_data)
+                # Check if it's a FeatureCollection
+                if region_data.get('type') == 'FeatureCollection':
+                    print(f"DEBUG: FeatureCollection with {len(region_data['features'])} features")
+                    features = [ee.Feature(ee.Geometry(f['geometry'])) for f in region_data['features']]
+                    result = ee.FeatureCollection(features).geometry()
+                    print("DEBUG: Successfully converted FeatureCollection")
+                    return result
+                else:
+                    print(f"DEBUG: Single geometry type: {region_data.get('type')}")
+                    return ee.Geometry(region_data)
             else:
                 # Try to parse as JSON string
                 import json
+                print("DEBUG: Parsing JSON string")
                 geometry_dict = json.loads(region_data)
+                if geometry_dict.get('type') == 'FeatureCollection':
+                    print(f"DEBUG: FeatureCollection from string with {len(geometry_dict['features'])} features")
+                    features = [ee.Feature(ee.Geometry(f['geometry'])) for f in geometry_dict['features']]
+                    return ee.FeatureCollection(features).geometry()
                 return ee.Geometry(geometry_dict)
         
         return None
