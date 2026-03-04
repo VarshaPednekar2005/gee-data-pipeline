@@ -294,9 +294,9 @@ class UniversalGEEHandler:
             if region:
                 collection = collection.filterBounds(region)
             
-            # Cloud filtering for Sentinel-2
-            if 'COPERNICUS/S2' in dataset_id or 'SENTINEL' in dataset_id.upper():
-                collection = collection.filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+            # Cloud filtering for Sentinel-2 (DISABLED - user wants all dates)
+            # if 'COPERNICUS/S2' in dataset_id or 'SENTINEL' in dataset_id.upper():
+            #     collection = collection.filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
             
             # Cloud filtering (if curated config has it)
             if config.get('cloud_filter'):
