@@ -8,12 +8,16 @@ env/
 venv/
 .venv/
 .env
+*.egg-info
+dist/
+build/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*.iml
 
 # Data files
 *.tif
@@ -22,16 +26,13 @@ venv/
 *.hdf
 *.h5
 GEE_Downloads/
+data/downloads/
+*.geotiff
 
-# Credentials & Secrets
-*.json
-*.key
-*.pem
-*.p12
-*.pfx
-*.crt
-*.cer
-*.der
+# Google Earth Engine & Google Cloud Credentials
+.earthengine/
+.earthengine-token
+.config/earthengine/
 credentials/
 .credentials/
 secrets/
@@ -40,9 +41,21 @@ auth/
 .auth/
 keys/
 .keys/
+*.json
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+google-credentials.json
+service-account*.json
+sa-key.json
 
 # Environment & Config
 .env*
+!.env.example
 config.ini
 settings.ini
 *.conf
@@ -54,7 +67,17 @@ settings.ini
 *token*
 *password*
 .earthengine-token
+.refresh_token
 
 # OS
 .DS_Store
 Thumbs.db
+.directory
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
